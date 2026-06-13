@@ -4,34 +4,39 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Driver App — BusTrack</title>
+<meta name="theme-color" content="#080c14"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 :root{
-  --bg:#080c14;--surface:#0d1421;--panel:#111827;--border:#1e2d45;
-  --accent:#00d4ff;--green:#00e676;--red:#ff3d57;--orange:#ff6b35;
-  --text:#e8edf5;--muted:#5a7090;
-  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+--bg:#080c14;--surface:#0d1421;--panel:#111827;--border:#1e2d45;
+--accent:#00d4ff;--green:#00e676;--red:#ff3d57;--orange:#ff6b35;
+--text:#e8edf5;--muted:#5a7090;
+--font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
 }
-::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 html,body{min-height:100%;font-family:var(--font);background:var(--bg);color:var(--text);}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 
 /* LOGIN */
 .login-screen{
-  min-height:100vh;display:flex;align-items:center;justify-content:center;
-  background-image:radial-gradient(ellipse at 30% 50%,rgba(0,212,255,0.05) 0%,transparent 60%);
-  padding:20px;
+min-height:100vh;display:flex;align-items:center;justify-content:center;
+background-image:radial-gradient(ellipse at 30% 50%,rgba(0,212,255,0.05) 0%,transparent 60%);
+padding:20px;
 }
 .login-box{
-  width:100%;max-width:380px;background:var(--panel);
-  border:1px solid var(--border);border-radius:20px;padding:36px;
-  box-shadow:0 24px 80px rgba(0,0,0,0.6);
+width:100%;max-width:380px;background:var(--panel);
+border:1px solid var(--border);border-radius:20px;padding:36px;
+box-shadow:0 24px 80px rgba(0,0,0,0.6);
 }
 .login-logo{text-align:center;margin-bottom:28px;}
 .login-logo .icon{
-  width:64px;height:64px;background:var(--accent);border-radius:18px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:32px;margin:0 auto 12px;
-  box-shadow:0 0 30px rgba(0,212,255,0.5);
+width:64px;height:64px;background:var(--accent);border-radius:18px;
+display:flex;align-items:center;justify-content:center;
+font-size:32px;margin:0 auto 12px;
+box-shadow:0 0 30px rgba(0,212,255,0.5);
 }
 .login-logo h1{font-size:20px;font-weight:700;}
 .login-logo h1 span{color:var(--accent);}
@@ -39,138 +44,162 @@ html,body{min-height:100%;font-family:var(--font);background:var(--bg);color:var
 .field{margin-bottom:14px;}
 .field label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:7px;}
 .field input{
-  width:100%;background:var(--surface);border:1px solid var(--border);
-  border-radius:10px;padding:12px 16px;color:var(--text);
-  font-family:var(--mono);font-size:14px;outline:none;transition:border-color 0.2s;
+width:100%;background:var(--surface);border:1px solid var(--border);
+border-radius:10px;padding:12px 16px;color:var(--text);
+font-family:var(--mono);font-size:14px;outline:none;transition:border-color 0.2s;
 }
 .field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,0.1);}
 .login-btn{
-  width:100%;padding:14px;background:var(--accent);color:#080c14;
-  border:none;border-radius:10px;font-family:var(--font);
-  font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;
-  transition:all 0.2s;
+width:100%;padding:14px;background:var(--accent);color:#080c14;
+border:none;border-radius:10px;font-family:var(--font);
+font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;transition:all 0.2s;
 }
 .login-btn:hover{background:#33ddff;}
 .login-btn:active{transform:scale(0.98);}
 .login-error{
-  background:rgba(255,61,87,0.1);border:1px solid rgba(255,61,87,0.3);
-  color:var(--red);border-radius:10px;padding:10px 14px;
-  font-size:13px;margin-top:12px;display:none;text-align:center;
+background:rgba(255,61,87,0.1);border:1px solid rgba(255,61,87,0.3);
+color:var(--red);border-radius:10px;padding:10px 14px;
+font-size:13px;margin-top:12px;display:none;text-align:center;
 }
 .login-error.show{display:block;}
 .login-hint{font-size:11px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5;}
 
 /* DRIVER APP */
-.driver-app{display:none;padding:20px;max-width:480px;margin:0 auto;}
+.driver-app{display:none;padding:16px;max-width:500px;margin:0 auto;padding-bottom:30px;}
+
+/* HEADER */
 .driver-header{
-  background:var(--panel);border:1px solid var(--border);
-  border-radius:16px;padding:20px;margin-bottom:16px;
-  display:flex;justify-content:space-between;align-items:center;
-  flex-wrap:wrap;gap:12px;
+background:var(--panel);border:1px solid var(--border);
+border-radius:16px;padding:16px 20px;margin-bottom:14px;
+display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
 }
 .driver-info h2{font-size:18px;font-weight:700;}
 .driver-info h2 span{color:var(--accent);}
-.driver-info p{font-size:12px;color:var(--muted);margin-top:3px;}
+.driver-info p{font-size:12px;color:var(--muted);margin-top:2px;}
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.signal{display:flex;align-items:center;gap:6px;font-size:12px;font-family:var(--mono);}
+.signal-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);}
+.signal-dot.good{background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.5s infinite;}
+.signal-dot.bad{background:var(--red);}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.4;}}
 .logout-btn{
-  background:rgba(255,61,87,0.1);border:1px solid rgba(255,61,87,0.3);
-  color:var(--red);border-radius:8px;padding:8px 14px;
-  font-size:12px;cursor:pointer;font-family:var(--font);transition:all 0.2s;
+background:rgba(255,61,87,0.1);border:1px solid rgba(255,61,87,0.3);
+color:var(--red);border-radius:8px;padding:8px 14px;
+font-size:12px;cursor:pointer;font-family:var(--font);transition:all 0.2s;
 }
 .logout-btn:hover{background:rgba(255,61,87,0.2);}
 
-/* BIG GO BUTTON */
+/* BACKGROUND BANNER */
+.bg-banner{
+background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);
+color:var(--green);border-radius:12px;padding:10px 16px;
+font-size:12px;font-family:var(--mono);margin-bottom:14px;
+display:none;align-items:center;gap:8px;
+}
+.bg-banner.show{display:flex;}
+.bg-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;animation:blink 1.2s infinite;}
+
+/* GO BUTTON CARD */
 .go-card{
-  background:var(--panel);border:1px solid var(--border);
-  border-radius:16px;padding:28px;margin-bottom:16px;text-align:center;
+background:var(--panel);border:1px solid var(--border);
+border-radius:16px;padding:24px;margin-bottom:14px;text-align:center;
 }
-.go-card h3{font-size:15px;color:var(--muted);margin-bottom:20px;font-weight:500;}
+.go-card h3{font-size:14px;color:var(--muted);margin-bottom:18px;font-weight:500;}
 .go-btn{
-  width:160px;height:160px;border-radius:50%;border:3px solid var(--border);
-  background:var(--surface);color:var(--muted);
-  font-size:16px;font-weight:700;cursor:pointer;
-  font-family:var(--font);transition:all 0.3s;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:8px;margin:0 auto;position:relative;overflow:hidden;
+width:150px;height:150px;border-radius:50%;border:3px solid var(--border);
+background:var(--surface);color:var(--muted);
+font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);
+transition:all 0.3s;display:flex;flex-direction:column;align-items:center;
+justify-content:center;gap:8px;margin:0 auto;
 }
-.go-btn .go-icon{font-size:36px;transition:transform 0.3s;}
+.go-btn .go-icon{font-size:34px;}
 .go-btn:hover{border-color:var(--accent);color:var(--text);}
 .go-btn.sharing{
-  border-color:var(--green);color:var(--green);
-  box-shadow:0 0 40px rgba(0,230,118,0.3);
-  animation:go-pulse 2s ease-in-out infinite;
+border-color:var(--green);color:var(--green);
+box-shadow:0 0 40px rgba(0,230,118,0.3);
+animation:go-pulse 2s ease-in-out infinite;
 }
-@keyframes go-pulse{
-  0%,100%{box-shadow:0 0 30px rgba(0,230,118,0.3);}
-  50%{box-shadow:0 0 60px rgba(0,230,118,0.6);}
-}
+@keyframes go-pulse{0%,100%{box-shadow:0 0 30px rgba(0,230,118,0.3);}50%{box-shadow:0 0 60px rgba(0,230,118,0.6);}}
 .go-btn.sharing .go-icon{animation:spin-slow 3s linear infinite;}
-@keyframes spin-slow{from{transform:rotate(0deg);}to{transform:rotate(360deg);};}
+@keyframes spin-slow{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* LIVE MAP */
+.map-card{
+background:var(--panel);border:1px solid var(--border);
+border-radius:16px;overflow:hidden;margin-bottom:14px;
+}
+.map-card-title{
+padding:12px 16px;font-size:11px;font-weight:600;
+letter-spacing:2px;color:var(--muted);text-transform:uppercase;
+display:flex;align-items:center;justify-content:space-between;
+border-bottom:1px solid var(--border);
+}
+.map-live-dot{
+display:inline-flex;align-items:center;gap:5px;
+font-size:11px;color:var(--muted);
+}
+.map-live-dot.active{color:var(--green);}
+.map-live-dot span{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;}
+#driverMap{
+height:240px;width:100%;
+background:#0a0f1a;
+}
+.map-offline-msg{
+height:240px;display:flex;align-items:center;justify-content:center;
+flex-direction:column;gap:8px;color:var(--muted);font-size:13px;
+}
+.map-offline-msg .icon{font-size:32px;}
+.center-btn{
+display:block;width:calc(100% - 32px);margin:10px 16px;
+padding:10px;background:rgba(0,212,255,0.1);
+border:1px solid rgba(0,212,255,0.2);border-radius:10px;
+color:var(--accent);font-family:var(--font);font-size:13px;
+font-weight:600;cursor:pointer;transition:all 0.2s;text-align:center;
+}
+.center-btn:hover{background:rgba(0,212,255,0.2);}
 
 /* STATUS CARD */
 .status-card{
-  background:var(--panel);border:1px solid var(--border);
-  border-radius:16px;padding:20px;margin-bottom:16px;
+background:var(--panel);border:1px solid var(--border);
+border-radius:16px;padding:18px;margin-bottom:14px;
 }
-.status-card h3{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;}
+.status-card h3{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;}
 .status-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .status-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
-.status-item .val{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--accent);}
+.status-item .val{font-family:var(--mono);font-size:18px;font-weight:600;color:var(--accent);}
 .status-item .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:3px;}
 
 /* GPS INFO */
 .gps-info{
-  background:var(--panel);border:1px solid var(--border);
-  border-radius:16px;padding:20px;margin-bottom:16px;
+background:var(--panel);border:1px solid var(--border);
+border-radius:16px;padding:18px;margin-bottom:14px;
 }
-.gps-info h3{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+.gps-info h3{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;}
 .gps-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(30,45,69,0.5);}
 .gps-row:last-child{border-bottom:none;}
 .gps-row .k{font-size:12px;color:var(--muted);}
 .gps-row .v{font-family:var(--mono);font-size:13px;color:var(--text);}
 
-/* Signal indicator */
-.signal{
-  display:flex;align-items:center;gap:6px;
-  font-size:12px;font-family:var(--mono);
-}
-.signal-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);}
-.signal-dot.good{background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.5s infinite;}
-.signal-dot.bad{background:var(--red);}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.4;};}
-
-/* Background running banner */
-.bg-banner{
-  background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);
-  color:var(--green);border-radius:12px;padding:10px 16px;
-  font-size:12px;font-family:var(--mono);margin-bottom:14px;
-  display:none;align-items:center;gap:8px;
-  animation:bg-pulse 2s ease-in-out infinite;
-}
-.bg-banner.show{display:flex;}
-@keyframes bg-pulse{0%,100%{opacity:1;}50%{opacity:0.7;};}
-.bg-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;animation:blink 1.2s infinite;}
-
-/* Wake lock badge */
-.wake-badge{
-  font-size:10px;padding:2px 8px;border-radius:6px;
-  background:rgba(0,212,255,0.1);color:var(--accent);
-  border:1px solid rgba(0,212,255,0.2);font-family:var(--mono);
-  margin-left:8px;
-}
-
-/* Toast */
+/* TOAST */
 .toast{
-  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
-  background:var(--surface);border:1px solid var(--accent);border-radius:10px;
-  padding:12px 24px;font-size:13px;color:var(--accent);z-index:9999;
-  opacity:0;transition:all 0.3s;pointer-events:none;font-family:var(--mono);
+position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+background:var(--surface);border:1px solid var(--accent);border-radius:10px;
+padding:12px 24px;font-size:13px;color:var(--accent);z-index:9999;
+opacity:0;transition:all 0.3s;pointer-events:none;font-family:var(--mono);
+white-space:nowrap;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
+/* Leaflet dark */
+.leaflet-container{background:#0a0f1a !important;}
+.leaflet-tile{filter:brightness(0.55) saturate(0.4) hue-rotate(180deg);}
+.leaflet-control-zoom a{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important;}
+.leaflet-attribution-flag{display:none!important;}
+
 @media(max-width:480px){
-  .driver-app{padding:12px;}
-  .go-btn{width:140px;height:140px;}
-  .status-grid{grid-template-columns:1fr 1fr;}
+.driver-app{padding:12px;padding-bottom:24px;}
+.go-btn{width:130px;height:130px;}
+#driverMap{height:200px;}
 }
 </style>
 </head>
@@ -178,112 +207,134 @@ html,body{min-height:100%;font-family:var(--font);background:var(--bg);color:var
 
 <!-- LOGIN -->
 <div class="login-screen" id="loginScreen">
-  <div class="login-box">
-    <div class="login-logo">
-      <div class="icon">🚌</div>
-      <h1>Bus<span>Track</span> Driver</h1>
-      <p>Login with your Bus ID and password</p>
-    </div>
-    <div class="field">
-      <label>Bus ID (Username)</label>
-      <input type="text" id="loginBusId" placeholder="e.g. BUS001" style="text-transform:uppercase" autocomplete="off"/>
-    </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="loginPass" placeholder="Your password" onkeypress="if(event.key==='Enter')doLogin()"/>
-    </div>
-    <button class="login-btn" onclick="doLogin()">Login →</button>
-    <div class="login-error" id="loginError">❌ Wrong Bus ID or Password. Contact admin.</div>
-    <div class="login-hint">Your Bus ID and password are given by the admin.<br>Contact Rohit Mehra if you forgot your credentials.</div>
-  </div>
+<div class="login-box">
+<div class="login-logo">
+<div class="icon">🚌</div>
+<h1>Bus<span>Track</span> Driver</h1>
+<p>Login with your Bus ID and password</p>
+</div>
+<div class="field">
+<label>Bus ID (Username)</label>
+<input type="text" id="loginBusId" placeholder="e.g. BUS001" style="text-transform:uppercase" autocomplete="off"/>
+</div>
+<div class="field">
+<label>Password</label>
+<input type="password" id="loginPass" placeholder="Your password" onkeypress="if(event.key==='Enter')doLogin()"/>
+</div>
+<button class="login-btn" onclick="doLogin()">Login →</button>
+<div class="login-error" id="loginError">❌ Wrong Bus ID or Password. Contact admin.</div>
+<div class="login-hint">Your Bus ID and password are given by the admin.<br>Contact Rohit Mehra if you forgot your credentials.</div>
+</div>
 </div>
 
 <!-- DRIVER APP -->
 <div class="driver-app" id="driverApp">
-  <div class="driver-header">
-    <div class="driver-info">
-      <h2>Bus <span id="dBusId">—</span></h2>
-      <p id="dBusName">Loading...</p>
-      <p id="dDriverName" style="font-size:12px;color:var(--accent);margin-top:2px;"></p>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <div class="signal">
-        <div class="signal-dot" id="signalDot"></div>
-        <span id="signalText" style="color:var(--muted)">No GPS</span>
-      </div>
-      <button class="logout-btn" onclick="doLogout()">Logout</button>
-    </div>
-  </div>
 
-  <div class="bg-banner" id="bgBanner">
-    <div class="bg-dot"></div>
-    <span>Running in background — Location is being shared</span>
-  </div>
+<!-- HEADER -->
+<div class="driver-header">
+<div class="driver-info">
+<h2>Bus <span id="dBusId">—</span></h2>
+<p id="dBusName">Loading...</p>
+<p id="dDriverName" style="font-size:12px;color:var(--accent);margin-top:2px;"></p>
+</div>
+<div class="header-right">
+<div class="signal">
+<div class="signal-dot" id="signalDot"></div>
+<span id="signalText" style="color:var(--muted)">No GPS</span>
+</div>
+<button class="logout-btn" onclick="doLogout()">Logout</button>
+</div>
+</div>
 
-  <div class="go-card">
-    <h3 id="goCardTitle">Tap START to share your live location</h3>
-    <button class="go-btn" id="goBtn" onclick="toggleSharing()">
-      <span class="go-icon" id="goIcon">📍</span>
-      <span id="goText">START</span>
-    </button>
-    <p style="font-size:11px;color:var(--muted);margin-top:16px;" id="goHint">Students will see your bus live on the map</p>
-  </div>
+<!-- BG BANNER -->
+<div class="bg-banner" id="bgBanner">
+<div class="bg-dot"></div>
+<span>Running in background — Location sharing ON ✅</span>
+</div>
 
-  <div class="status-card">
-    <h3>Live Status</h3>
-    <div class="status-grid">
-      <div class="status-item">
-        <div class="val" id="sSpeed">0</div>
-        <div class="lbl">km/h Speed</div>
-      </div>
-      <div class="status-item">
-        <div class="val" id="sUpdates">0</div>
-        <div class="lbl">Updates Sent</div>
-      </div>
-      <div class="status-item">
-        <div class="val" id="sAccuracy">—</div>
-        <div class="lbl">GPS Accuracy</div>
-      </div>
-      <div class="status-item">
-        <div class="val" id="sTime">—</div>
-        <div class="lbl">Last Update</div>
-      </div>
-    </div>
-  </div>
+<!-- GO BUTTON -->
+<div class="go-card">
+<h3 id="goCardTitle">Tap START to share your live location</h3>
+<button class="go-btn" id="goBtn" onclick="toggleSharing()">
+<span class="go-icon" id="goIcon">📍</span>
+<span id="goText">START</span>
+</button>
+<p style="font-size:11px;color:var(--muted);margin-top:14px;" id="goHint">Students will see your bus live on the map</p>
+</div>
 
-  <div class="gps-info">
-    <h3>GPS Data</h3>
-    <div class="gps-row"><span class="k">Latitude</span><span class="v" id="gLat">—</span></div>
-    <div class="gps-row"><span class="k">Longitude</span><span class="v" id="gLng">—</span></div>
-    <div class="gps-row"><span class="k">Altitude</span><span class="v" id="gAlt">—</span></div>
-    <div class="gps-row"><span class="k">Route</span><span class="v" id="gRoute">—</span></div>
-  </div>
+<!-- LIVE MAP -->
+<div class="map-card">
+<div class="map-card-title">
+<span>📍 My Live Location</span>
+<span class="map-live-dot" id="mapLiveDot"><span></span> Waiting...</span>
+</div>
+<div id="mapOfflineMsg" class="map-offline-msg">
+<div class="icon">🗺️</div>
+<div>Start sharing to see your location on map</div>
+</div>
+<div id="driverMap" style="display:none;"></div>
+<button class="center-btn" id="centerBtn" style="display:none;" onclick="centerMap()">📍 Center on my location</button>
+</div>
+
+<!-- STATUS -->
+<div class="status-card">
+<h3>Live Status</h3>
+<div class="status-grid">
+<div class="status-item">
+<div class="val" id="sSpeed">0</div>
+<div class="lbl">km/h Speed</div>
+</div>
+<div class="status-item">
+<div class="val" id="sUpdates">0</div>
+<div class="lbl">Updates Sent</div>
+</div>
+<div class="status-item">
+<div class="val" id="sAccuracy">—</div>
+<div class="lbl">GPS Accuracy</div>
+</div>
+<div class="status-item">
+<div class="val" id="sTime">—</div>
+<div class="lbl">Last Update</div>
+</div>
+</div>
+</div>
+
+<!-- GPS DATA -->
+<div class="gps-info">
+<h3>GPS Data</h3>
+<div class="gps-row"><span class="k">Latitude</span><span class="v" id="gLat">—</span></div>
+<div class="gps-row"><span class="k">Longitude</span><span class="v" id="gLng">—</span></div>
+<div class="gps-row"><span class="k">Altitude</span><span class="v" id="gAlt">—</span></div>
+<div class="gps-row"><span class="k">Route</span><span class="v" id="gRoute">—</span></div>
+</div>
+
 </div>
 
 <div class="toast" id="toast"></div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, get, set, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBRhyAtV5I56gK_JnOJu3lgKKyG35exVzU",
-  authDomain: "college-busses.firebaseapp.com",
-  databaseURL: "https://college-busses-default-rtdb.firebaseio.com",
-  projectId: "college-busses",
-  storageBucket: "college-busses.firebasestorage.app",
-  messagingSenderId: "508998049229",
-  appId: "1:508998049229:web:77b7eb5fca95ba43fe7884"
+apiKey: "AIzaSyBRhyAtV5I56gK_JnOJu3lgKKyG35exVzU",
+authDomain: "college-busses.firebaseapp.com",
+databaseURL: "https://college-busses-default-rtdb.firebaseio.com",
+projectId: "college-busses",
+storageBucket: "college-busses.firebasestorage.app",
+messagingSenderId: "508998049229",
+appId: "1:508998049229:web:77b7eb5fca95ba43fe7884"
 };
 
 const app = initializeApp(firebaseConfig);
-const db  = getDatabase(app);
+const db = getDatabase(app);
 
 // Security
-document.addEventListener('contextmenu',e=>e.preventDefault());
-document.addEventListener('keydown',e=>{
-  if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&['I','J','C'].includes(e.key))||(e.ctrlKey&&e.key==='U'))
-    e.preventDefault();
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&['I','J','C'].includes(e.key))||(e.ctrlKey&&e.key==='U'))
+e.preventDefault();
 });
 
 let currentBusId = null;
@@ -292,280 +343,317 @@ let isSharing = false;
 let watchId = null;
 let updateCount = 0;
 let lastPos = null;
+let wakeLock = null;
+let bgInterval = null;
+let gpsRetryTimer = null;
+
+// MAP
+let driverMap = null;
+let driverMarker = null;
+let mapInited = false;
+
+function initMap(lat, lng) {
+if (mapInited) return;
+mapInited = true;
+document.getElementById('mapOfflineMsg').style.display = 'none';
+document.getElementById('driverMap').style.display = 'block';
+document.getElementById('centerBtn').style.display = 'block';
+
+driverMap = L.map('driverMap', { zoomControl: true, attributionControl: false })
+.setView([lat, lng], 16);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(driverMap);
+
+const color = currentBusData?.color || '#00e676';
+const busIcon = L.divIcon({
+html: `<div style="background:${color};color:#080c14;padding:6px 12px;border-radius:20px;font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;box-shadow:0 0 20px ${color}88;white-space:nowrap;">🚌 ${currentBusId}</div>`,
+className: '',
+iconAnchor: [40, 16]
+});
+driverMarker = L.marker([lat, lng], { icon: busIcon }).addTo(driverMap);
+
+// Live dot active
+const dot = document.getElementById('mapLiveDot');
+dot.className = 'map-live-dot active';
+dot.innerHTML = '<span></span> Live';
+}
+
+function updateMap(lat, lng) {
+if (!mapInited) {
+initMap(lat, lng);
+return;
+}
+driverMarker.setLatLng([lat, lng]);
+// Auto center agar driver zoom nahi kar raha
+if (autoCenter) driverMap.setView([lat, lng], driverMap.getZoom());
+}
+
+let autoCenter = true;
+window.centerMap = function() {
+if (lastPos && driverMap) {
+driverMap.setView([lastPos.lat, lastPos.lng], 16);
+autoCenter = true;
+}
+};
+
+// Stop auto center when user drags map
+setTimeout(() => {
+if (driverMap) {
+driverMap.on('dragstart', () => { autoCenter = false; });
+}
+}, 2000);
 
 // ── LOGIN ──
-window.doLogin = async function(){
-  const busId = document.getElementById('loginBusId').value.trim().toUpperCase();
-  const pass  = document.getElementById('loginPass').value;
-  if(!busId||!pass){ toast('❌ Enter Bus ID and Password'); return; }
+window.doLogin = async function() {
+const busId = document.getElementById('loginBusId').value.trim().toUpperCase();
+const pass = document.getElementById('loginPass').value;
+if (!busId || !pass) { toast('❌ Enter Bus ID and Password'); return; }
 
-  const snap = await get(ref(db,'buses_config/'+busId));
-  if(!snap.exists()){
-    showErr(); return;
-  }
-  const data = snap.val();
-  if(data.password !== pass){
-    showErr(); return;
-  }
-  // Success
-  currentBusId   = busId;
-  currentBusData = data;
-  sessionStorage.setItem('driver_bus', busId);
-  sessionStorage.setItem('driver_pass', pass);
-  showApp();
+try {
+const snap = await get(ref(db, 'buses_config/' + busId));
+if (!snap.exists()) { showErr(); return; }
+const data = snap.val();
+if (data.password !== pass) { showErr(); return; }
+currentBusId = busId;
+currentBusData = data;
+sessionStorage.setItem('driver_bus', busId);
+sessionStorage.setItem('driver_pass', pass);
+showApp();
+} catch(e) {
+toast('❌ Network error. Check internet.');
+}
 };
 
-function showErr(){
-  document.getElementById('loginError').classList.add('show');
-  setTimeout(()=>document.getElementById('loginError').classList.remove('show'),3000);
+function showErr() {
+document.getElementById('loginError').classList.add('show');
+setTimeout(() => document.getElementById('loginError').classList.remove('show'), 3000);
 }
 
-function showApp(){
-  document.getElementById('loginScreen').style.display='none';
-  document.getElementById('driverApp').style.display='block';
-  document.getElementById('dBusId').textContent  = currentBusId;
-  document.getElementById('dBusName').textContent = currentBusData.name||'';
-  document.getElementById('dDriverName').textContent = '👤 '+( currentBusData.driver||'Driver');
-  document.getElementById('gRoute').textContent   = currentBusData.route||'—';
-  toast('✅ Welcome! Tap START to go live.');
+function showApp() {
+document.getElementById('loginScreen').style.display = 'none';
+document.getElementById('driverApp').style.display = 'block';
+document.getElementById('dBusId').textContent = currentBusId;
+document.getElementById('dBusName').textContent = currentBusData.name || '';
+document.getElementById('dDriverName').textContent = '👤 ' + (currentBusData.driver || 'Driver');
+document.getElementById('gRoute').textContent = currentBusData.route || '—';
+toast('✅ Welcome! Tap START to go live.');
 }
 
-window.doLogout = function(){
-  stopSharing();
-  sessionStorage.removeItem('driver_bus');
-  sessionStorage.removeItem('driver_pass');
-  location.reload();
+window.doLogout = function() {
+stopSharing();
+sessionStorage.removeItem('driver_bus');
+sessionStorage.removeItem('driver_pass');
+sessionStorage.removeItem('driver_sharing');
+location.reload();
 };
 
-// Auto-login if session exists
-const savedBus  = sessionStorage.getItem('driver_bus');
+// Auto-login
+const savedBus = sessionStorage.getItem('driver_bus');
 const savedPass = sessionStorage.getItem('driver_pass');
-if(savedBus && savedPass){
-  document.getElementById('loginBusId').value = savedBus;
-  document.getElementById('loginPass').value  = savedPass;
-  window.doLogin();
+if (savedBus && savedPass) {
+document.getElementById('loginBusId').value = savedBus;
+document.getElementById('loginPass').value = savedPass;
+window.doLogin();
 }
 
 // ── SHARING ──
-window.toggleSharing = function(){
-  if(isSharing) stopSharing();
-  else startSharing();
+window.toggleSharing = function() {
+if (isSharing) stopSharing();
+else startSharing();
 };
 
-function startSharing(){
-  if(!navigator.geolocation){
-    toast('❌ GPS not supported on this device'); return;
-  }
-  isSharing = true;
-  updateCount = 0;
-  sessionStorage.setItem('driver_sharing','1');  // Background ke liye save karo
-  document.getElementById('goBtn').classList.add('sharing');
-  document.getElementById('goIcon').textContent = '🔴';
-  document.getElementById('goText').textContent = 'STOP';
-  document.getElementById('goCardTitle').textContent = 'Sharing live location...';
-  document.getElementById('goHint').textContent = 'Students can see your bus on the map';
+function startSharing() {
+if (!navigator.geolocation) { toast('❌ GPS not supported'); return; }
+isSharing = true;
+updateCount = 0;
+sessionStorage.setItem('driver_sharing', '1');
 
-  watchId = navigator.geolocation.watchPosition(
-    onGPS,
-    onGPSErr,
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 2000 }
-  );
-  toast('🟢 Location sharing started!');
+document.getElementById('goBtn').classList.add('sharing');
+document.getElementById('goIcon').textContent = '🔴';
+document.getElementById('goText').textContent = 'STOP';
+document.getElementById('goCardTitle').textContent = 'Sharing live location...';
+document.getElementById('goHint').textContent = 'Students can see your bus on the map';
+
+watchId = navigator.geolocation.watchPosition(
+onGPS,
+onGPSErr,
+{ enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 }
+);
+
+requestWakeLock();
+toast('🟢 Location sharing started!');
 }
 
-function stopSharing(){
-  isSharing = false;
-  sessionStorage.removeItem('driver_sharing');  // Clear sharing state
-  if(wakeLock){ wakeLock.release(); wakeLock=null; }
-  if(bgInterval){ clearInterval(bgInterval); bgInterval=null; }
-  if(watchId !== null){ navigator.geolocation.clearWatch(watchId); watchId=null; }
-  // Remove from Firebase
-  if(currentBusId) remove(ref(db,'buses/'+currentBusId));
-  document.getElementById('bgBanner').classList.remove('show');
-  document.getElementById('goBtn').classList.remove('sharing');
-  document.getElementById('goIcon').textContent = '📍';
-  document.getElementById('goText').textContent = 'START';
-  document.getElementById('goCardTitle').textContent = 'Tap START to share your live location';
-  document.getElementById('goHint').textContent = 'Students will see your bus live on the map';
-  document.getElementById('signalDot').className='signal-dot';
-  document.getElementById('signalText').textContent='Offline';
-  const badge = document.getElementById('wakeBadge');
-  if(badge) badge.remove();
-  toast('🔴 Location sharing stopped');
+function stopSharing() {
+isSharing = false;
+sessionStorage.removeItem('driver_sharing');
+if (wakeLock) { wakeLock.release(); wakeLock = null; }
+if (bgInterval) { clearInterval(bgInterval); bgInterval = null; }
+if (gpsRetryTimer) { clearTimeout(gpsRetryTimer); gpsRetryTimer = null; }
+if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+if (currentBusId) remove(ref(db, 'buses/' + currentBusId));
+
+document.getElementById('bgBanner').classList.remove('show');
+document.getElementById('goBtn').classList.remove('sharing');
+document.getElementById('goIcon').textContent = '📍';
+document.getElementById('goText').textContent = 'START';
+document.getElementById('goCardTitle').textContent = 'Tap START to share your live location';
+document.getElementById('goHint').textContent = 'Students will see your bus live on the map';
+document.getElementById('signalDot').className = 'signal-dot';
+document.getElementById('signalText').textContent = 'No GPS';
+document.getElementById('signalText').style.color = 'var(--muted)';
+
+// Map reset
+const dot = document.getElementById('mapLiveDot');
+dot.className = 'map-live-dot';
+dot.innerHTML = '<span></span> Stopped';
+
+toast('🔴 Location sharing stopped');
 }
 
-function onGPS(pos){
-  const lat = pos.coords.latitude;
-  const lng = pos.coords.longitude;
-  const acc = pos.coords.accuracy;
-  const alt = pos.coords.altitude;
+function onGPS(pos) {
+const lat = pos.coords.latitude;
+const lng = pos.coords.longitude;
+const acc = pos.coords.accuracy;
+const alt = pos.coords.altitude;
 
-  // Calculate speed (km/h)
-  let speed = 0;
-  if(pos.coords.speed !== null){
-    speed = Math.round(pos.coords.speed * 3.6);
-  } else if(lastPos){
-    const dt = (pos.timestamp - lastPos.timestamp)/1000;
-    const dist = haversine(lastPos.lat, lastPos.lng, lat, lng);
-    speed = Math.round((dist/dt)*3600);
-  }
-  lastPos = { lat, lng, timestamp: pos.timestamp };
-  updateCount++;
-
-  // Update Firebase
-  set(ref(db, 'buses/'+currentBusId), {
-    lat, lng, speed,
-    accuracy: Math.round(acc),
-    altitude: alt ? Math.round(alt) : null,
-    timestamp: Date.now(),
-    busName: currentBusData.name,
-    driver: currentBusData.driver,
-    route: currentBusData.route
-  });
-
-  // Update UI
-  document.getElementById('gLat').textContent = lat.toFixed(6);
-  document.getElementById('gLng').textContent = lng.toFixed(6);
-  document.getElementById('gAlt').textContent = alt ? Math.round(alt)+'m' : '—';
-  document.getElementById('sSpeed').textContent = speed;
-  document.getElementById('sUpdates').textContent = updateCount;
-  document.getElementById('sAccuracy').textContent = Math.round(acc)+'m';
-  document.getElementById('sTime').textContent = new Date().toLocaleTimeString();
-
-  // Signal quality
-  const dot = document.getElementById('signalDot');
-  const sig = document.getElementById('signalText');
-  if(acc < 30){
-    dot.className='signal-dot good';
-    sig.textContent='Good GPS'; sig.style.color='var(--green)';
-  } else {
-    dot.className='signal-dot bad';
-    sig.textContent='Weak GPS'; sig.style.color='var(--orange)';
-  }
+let speed = 0;
+if (pos.coords.speed !== null && pos.coords.speed >= 0) {
+speed = Math.round(pos.coords.speed * 3.6);
+} else if (lastPos) {
+const dt = (pos.timestamp - lastPos.timestamp) / 1000;
+if (dt > 0) {
+const dist = haversine(lastPos.lat, lastPos.lng, lat, lng);
+speed = Math.round((dist / dt) * 3.6);
 }
-
-function onGPSErr(err){
-  const msgs = {1:'GPS permission denied',2:'GPS unavailable',3:'GPS timeout'};
-  toast('⚠️ '+( msgs[err.code]||'GPS error'));
-  document.getElementById('signalDot').className='signal-dot bad';
 }
+lastPos = { lat, lng, accuracy: acc, timestamp: pos.timestamp };
+updateCount++;
 
-// Haversine formula — distance in meters
-function haversine(lat1,lon1,lat2,lon2){
-  const R=6371000;
-  const dLat=(lat2-lat1)*Math.PI/180;
-  const dLon=(lon2-lon1)*Math.PI/180;
-  const a=Math.sin(dLat/2)*2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-
-// =============================================
-// BACKGROUND RUNNING — Page Visibility API
-// Jab user tab switch kare ya phone lock kare
-// GPS sharing band NAHI hogi
-// =============================================
-let bgInterval = null;   // Background mein bhi Firebase update karta rahega
-
-document.addEventListener('visibilitychange', ()=>{
-  if(document.hidden && isSharing){
-    // Background mein chale gaye — banner dikhao
-    document.getElementById('bgBanner').classList.add('show');
-    // Background mein bhi GPS update karte raho har 5 sec
-    if(!bgInterval){
-      bgInterval = setInterval(()=>{
-        if(lastPos && currentBusId && isSharing){
-          set(ref(db,'buses/'+currentBusId), {
-            lat: lastPos.lat,
-            lng: lastPos.lng,
-            speed: 0,
-            accuracy: lastPos.accuracy||0,
-            timestamp: Date.now(),
-            busName: currentBusData?.name,
-            driver: currentBusData?.driver,
-            route: currentBusData?.route,
-            background: true   // Flag — background se update
-          });
-        }
-      }, 5000);
-    }
-  } else {
-    // Wapas foreground mein aaye
-    document.getElementById('bgBanner').classList.remove('show');
-    if(bgInterval){ clearInterval(bgInterval); bgInterval=null; }
-  }
+// Firebase update
+set(ref(db, 'buses/' + currentBusId), {
+lat, lng, speed,
+accuracy: Math.round(acc),
+altitude: alt ? Math.round(alt) : null,
+timestamp: Date.now(),
+busName: currentBusData.name,
+driver: currentBusData.driver,
+route: currentBusData.route,
+color: currentBusData.color || '#00e676'
 });
 
-// =============================================
-// WAKE LOCK API — Screen band na ho
-// Chrome/Android pe kaam karta hai
-// =============================================
-let wakeLock = null;
+// Update UI
+document.getElementById('gLat').textContent = lat.toFixed(6);
+document.getElementById('gLng').textContent = lng.toFixed(6);
+document.getElementById('gAlt').textContent = alt ? Math.round(alt) + 'm' : '—';
+document.getElementById('sSpeed').textContent = speed;
+document.getElementById('sUpdates').textContent = updateCount;
+document.getElementById('sAccuracy').textContent = Math.round(acc) + 'm';
+document.getElementById('sTime').textContent = new Date().toLocaleTimeString();
 
-async function requestWakeLock(){
-  if('wakeLock' in navigator){
-    try {
-      wakeLock = await navigator.wakeLock.request('screen');
-      // Wake lock badge dikhao
-      const badge = document.createElement('span');
-      badge.className='wake-badge';
-      badge.id='wakeBadge';
-      badge.textContent='🔒 Screen Active';
-      document.getElementById('dBusId').parentElement.appendChild(badge);
-    } catch(e){
-      // Wake lock nahi mila — koi baat nahi, GPS chalti rahegi
-      console.log('Wake lock not available:', e);
-    }
-  }
+// Signal quality
+const dot = document.getElementById('signalDot');
+const sig = document.getElementById('signalText');
+if (acc < 30) {
+dot.className = 'signal-dot good';
+sig.textContent = 'Good GPS';
+sig.style.color = 'var(--green)';
+} else if (acc < 80) {
+dot.className = 'signal-dot good';
+sig.textContent = 'OK GPS';
+sig.style.color = 'var(--orange)';
+} else {
+dot.className = 'signal-dot bad';
+sig.textContent = 'Weak GPS';
+sig.style.color = 'var(--red)';
 }
 
-function releaseWakeLock(){
-  if(wakeLock){ wakeLock.release(); wakeLock=null; }
-  const badge = document.getElementById('wakeBadge');
-  if(badge) badge.remove();
+// Update map
+updateMap(lat, lng);
 }
 
-// Wake lock wapas le jab visibility change ho
-document.addEventListener('visibilitychange', async()=>{
-  if(wakeLock !== null && document.visibilityState === 'visible' && isSharing){
-    await requestWakeLock();
-  }
+function onGPSErr(err) {
+const msgs = { 1: 'GPS permission denied', 2: 'GPS unavailable', 3: 'GPS timeout — retrying...' };
+toast('⚠️ ' + (msgs[err.code] || 'GPS error'));
+document.getElementById('signalDot').className = 'signal-dot bad';
+document.getElementById('signalText').textContent = 'GPS Error';
+document.getElementById('signalText').style.color = 'var(--red)';
+
+// Auto retry after timeout
+if (err.code === 3 && isSharing) {
+if (gpsRetryTimer) clearTimeout(gpsRetryTimer);
+gpsRetryTimer = setTimeout(() => {
+if (isSharing) {
+if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+watchId = navigator.geolocation.watchPosition(onGPS, onGPSErr,
+{ enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 });
+toast('🔄 GPS reconnecting...');
+}
+}, 5000);
+}
+}
+
+// Haversine — meters
+function haversine(lat1, lon1, lat2, lon2) {
+const R = 6371000;
+const dLat = (lat2 - lat1) * Math.PI / 180;
+const dLon = (lon2 - lon1) * Math.PI / 180;
+const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ── WAKE LOCK ──
+async function requestWakeLock() {
+if ('wakeLock' in navigator) {
+try {
+wakeLock = await navigator.wakeLock.request('screen');
+} catch(e) {
+console.log('Wake lock:', e.message);
+}
+}
+}
+
+// Re-acquire wake lock when page becomes visible
+document.addEventListener('visibilitychange', async () => {
+if (document.visibilityState === 'visible' && isSharing) {
+await requestWakeLock();
+// Restart GPS watch if needed
+if (watchId === null) {
+watchId = navigator.geolocation.watchPosition(onGPS, onGPSErr,
+{ enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 });
+}
+document.getElementById('bgBanner').classList.remove('show');
+} else if (document.hidden && isSharing) {
+document.getElementById('bgBanner').classList.add('show');
+// Background interval — Firebase alive rakh
+if (!bgInterval) {
+bgInterval = setInterval(() => {
+if (lastPos && currentBusId && isSharing) {
+set(ref(db, 'buses/' + currentBusId), {
+lat: lastPos.lat,
+lng: lastPos.lng,
+speed: 0,
+accuracy: lastPos.accuracy || 0,
+timestamp: Date.now(),
+busName: currentBusData?.name,
+driver: currentBusData?.driver,
+route: currentBusData?.route,
+color: currentBusData?.color || '#00e676',
+background: true
+});
+}
+}, 4000);
+}
+} else {
+if (bgInterval) { clearInterval(bgInterval); bgInterval = null; }
+}
 });
 
-// =============================================
-// OVERRRIDE stopSharing — Wake lock release
-// =============================================
-const _origStop = stopSharing;
-stopSharing = function(){
-  releaseWakeLock();
-  if(bgInterval){ clearInterval(bgInterval); bgInterval=null; }
-  document.getElementById('bgBanner').classList.remove('show');
-  _origStop();
-};
-
-// =============================================
-// OVERRIDE startSharing — Wake lock request
-// =============================================
-const _origStart = startSharing;
-startSharing = function(){
-  _origStart();
-  requestWakeLock();
-};
-
-// Page unload pe sharing band NAHI karenge
-// Sirf manual logout pe band hoga
-// (beforeunload removed intentionally)
-
-// Agar page refresh ho gaya toh session se wapas sharing shuru karo
-window.addEventListener('load', ()=>{
-  if(sessionStorage.getItem('driver_sharing')==='1' && isSharing){
-    document.getElementById('bgBanner').classList.add('show');
-  }
-});
-
-function toast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2800);
+// ── TOAST ──
+function toast(msg) {
+const t = document.getElementById('toast');
+t.textContent = msg;
+t.classList.add('show');
+setTimeout(() => t.classList.remove('show'), 2800);
 }
 </script>
 </body>
