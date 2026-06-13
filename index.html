@@ -9,6 +9,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="BusTrack"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
 <style>
 :root{
 --bg:#080c14;--surface:#0d1421;--panel:#111827;--border:#1e2d45;
@@ -526,6 +531,16 @@ t.classList.add('show');
 setTimeout(() => t.classList.remove('show'), 2500);
 }
 window.toast = toast;
+</script>
+
+
+
+<script>
+if("serviceWorker" in navigator){
+window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("sw.js");
+});
+}
 </script>
 </body>
 </html>
