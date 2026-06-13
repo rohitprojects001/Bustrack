@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<title>BusTrack — College Transit</title>
+<meta name="description" content="Live bus tracking for college students"/>
+<meta name="theme-color" content="#080c14"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{
+  --bg:#080c14;--surface:#0d1421;--panel:#111827;--border:#1e2d45;
+  --accent:#00d4ff;--accent2:#ff6b35;--green:#00e676;--red:#ff3d57;
+  --text:#e8edf5;--muted:#5a7090;
+  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text);}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* NAVBAR */
+.navbar{
+  height:56px;background:var(--panel);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;position:relative;z-index:1000;
+  padding-top:env(safe-area-inset-top);
+}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{
+  width:32px;height:32px;background:var(--accent);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  box-shadow:0 0 16px rgba(0,212,255,0.4);
+  animation:pulse-logo 3s ease-in-out infinite;
+  flex-shrink:0;
+}
+@keyframes pulse-logo{
+  0%,100%{box-shadow:0 0 16px rgba(0,212,255,0.4);}
+  50%{box-shadow:0 0 28px rgba(0,212,255,0.8);}
+}
+.logo-text{font-size:18px;font-weight:700;letter-spacing:-0.5px;white-space:nowrap;}
+.logo-text span{color:var(--accent);}
+.search-wrap{
+  display:flex;align-items:center;background:var(--surface);
+  border:1px solid var(--border);border-radius:10px;
+  padding:0 14px;gap:8px;transition:border-color 0.2s;width:220px;
+}
+.search-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,0.1);}
+.search-wrap input{
+  background:none;border:none;outline:none;color:var(--text);
+  font-family:var(--mono);font-size:13px;padding:9px 0;width:100%;
+}
+.search-wrap input::placeholder{color:var(--muted);}
+.search-btn{background:none;border:none;cursor:pointer;color:var(--accent);font-size:16px;padding:4px;transition:transform 0.2s;}
+.search-btn:hover{transform:scale(1.2);}
+.live-badge{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--green);font-family:var(--mono);letter-spacing:1px;white-space:nowrap;}
+.live-dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:blink-dot 1.2s ease-in-out infinite;}
+@keyframes blink-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(0.8);}}
+
+/* LAYOUT */
+.layout{display:flex;height:calc(100vh - 56px);}
+
+/* SIDEBAR */
+.sidebar{
+  width:290px;background:var(--panel);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
+}
+.sidebar-header{
+  padding:14px 18px 12px;border-bottom:1px solid var(--border);
+  font-size:11px;font-weight:600;letter-spacing:2px;color:var(--muted);text-transform:uppercase;
+}
+.bus-list{padding:10px;display:flex;flex-direction:column;gap:7px;border-bottom:1px solid var(--border);overflow-y:auto;max-height:260px;}
+.bus-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:13px 15px;cursor:pointer;
+  transition:all 0.25s ease;position:relative;overflow:hidden;
+}
+.bus-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--accent);transform:scaleY(0);
+  transition:transform 0.25s ease;border-radius:0 2px 2px 0;
+}
+.bus-card:hover::before,.bus-card.active::before{transform:scaleY(1);}
+.bus-card:hover{border-color:var(--accent);background:rgba(0,212,255,0.05);transform:translateX(3px);}
+.bus-card.active{border-color:var(--accent);background:rgba(0,212,255,0.08);transform:translateX(3px);}
+.bus-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.bus-number{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--accent);}
+.fb-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block;margin-left:6px;transition:background 0.3s;vertical-align:middle;}
+.fb-dot.live{background:var(--green);box-shadow:0 0 6px var(--green);}
+.bus-status{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;}
+.bus-status.running{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3);}
+.bus-status.stopped{background:rgba(255,61,87,0.15);color:var(--red);border:1px solid rgba(255,61,87,0.3);}
+.bus-status.offline{background:rgba(90,112,144,0.12);color:var(--muted);border:1px solid var(--border);}
+.bus-route{font-size:11px;color:var(--muted);margin-bottom:3px;}
+.bus-driver{font-size:11px;color:var(--text);opacity:0.7;}
+
+/* DETAILS */
+.details-panel{flex:1;overflow-y:auto;padding:14px;}
+.details-title{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px;}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px;text-align:center;transition:border-color 0.3s;}
+.stat-box:hover{border-color:var(--accent);}
+.stat-icon{font-size:16px;margin-bottom:3px;}
+.stat-value{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--accent);}
+.stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+.stops-title{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+.timeline{position:relative;padding-left:20px;}
+.timeline::before{content:'';position:absolute;left:5px;top:8px;bottom:8px;width:1px;background:var(--border);}
+.stop-item{position:relative;padding:7px 0 7px 14px;font-size:12px;display:flex;justify-content:space-between;align-items:center;}
+.stop-item::before{content:'';position:absolute;left:-15px;top:50%;transform:translateY(-50%);width:11px;height:11px;border-radius:50%;border:2px solid var(--border);background:var(--bg);transition:all 0.3s;}
+.stop-item.passed::before{background:var(--green);border-color:var(--green);}
+.stop-item.current::before{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px rgba(0,212,255,0.8);animation:pulse-stop 1.5s ease-in-out infinite;}
+@keyframes pulse-stop{0%,100%{box-shadow:0 0 8px rgba(0,212,255,0.6);}50%{box-shadow:0 0 20px rgba(0,212,255,1);}}
+.stop-name{color:var(--text);font-size:12px;}
+.stop-name.passed{color:var(--muted);}
+.stop-name.current{color:var(--accent);font-weight:600;}
+.stop-tag{font-size:9px;padding:2px 6px;border-radius:6px;font-family:var(--mono);}
+.current-tag{background:rgba(0,212,255,0.15);color:var(--accent);}
+.next-tag{background:rgba(255,107,53,0.15);color:var(--accent2);}
+
+/* MAP */
+.map-wrap{flex:1;position:relative;overflow:hidden;}
+#map{width:100%;height:100%;}
+.map-overlay{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:500;
+  background:rgba(13,20,33,0.92);border:1px solid var(--border);
+  border-radius:12px;padding:9px 18px;display:flex;gap:20px;
+  backdrop-filter:blur(8px);animation:slide-down 0.4s ease;
+  white-space:nowrap;
+}
+@keyframes slide-down{from{opacity:0;transform:translateX(-50%) translateY(-10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+.overlay-item{text-align:center;}
+.overlay-val{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--accent);}
+.overlay-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.overlay-sep{width:1px;background:var(--border);}
+.sos-btn{
+  position:absolute;bottom:22px;right:18px;z-index:500;
+  background:var(--red);color:white;border:none;border-radius:50px;
+  padding:11px 20px;font-family:var(--font);font-size:13px;font-weight:700;
+  cursor:pointer;letter-spacing:1px;
+  box-shadow:0 4px 20px rgba(255,61,87,0.5);transition:all 0.2s;
+  animation:sos-pulse 2s ease-in-out infinite;
+}
+@keyframes sos-pulse{0%,100%{box-shadow:0 4px 20px rgba(255,61,87,0.4);}50%{box-shadow:0 4px 32px rgba(255,61,87,0.8);}}
+.sos-btn:hover{transform:scale(1.05);}
+.fb-status{
+  position:absolute;bottom:22px;left:18px;z-index:500;
+  background:rgba(13,20,33,0.9);border:1px solid var(--border);
+  border-radius:8px;padding:5px 14px;font-size:11px;
+  font-family:var(--mono);color:var(--muted);
+  backdrop-filter:blur(8px);transition:all 0.3s;white-space:nowrap;
+}
+.fb-status.connected{border-color:var(--green);color:var(--green);}
+.fb-status.error{border-color:var(--red);color:var(--red);}
+
+/* WATERMARK */
+.watermark{
+  position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
+  z-index:400;font-size:9px;color:rgba(90,112,144,0.5);
+  font-family:var(--mono);pointer-events:none;white-space:nowrap;
+  user-select:none;
+}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--surface);border:1px solid var(--accent);border-radius:10px;
+  padding:11px 22px;font-size:13px;color:var(--accent);z-index:9999;
+  opacity:0;transition:all 0.3s;pointer-events:none;font-family:var(--mono);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Leaflet dark */
+.leaflet-container{background:#0a0f1a !important;}
+.leaflet-tile{filter:brightness(0.6) saturate(0.4) hue-rotate(180deg);}
+.leaflet-popup-content-wrapper{background:var(--surface) !important;border:1px solid var(--border) !important;color:var(--text) !important;border-radius:10px !important;box-shadow:0 8px 32px rgba(0,0,0,0.5) !important;}
+.leaflet-popup-tip{background:var(--surface) !important;}
+.leaflet-popup-content{font-family:var(--font) !important;font-size:13px !important;}
+.leaflet-control-zoom a{background:var(--surface) !important;color:var(--text) !important;border-color:var(--border) !important;}
+.leaflet-control-zoom a:hover{background:var(--border) !important;}
+.leaflet-attribution-flag{display:none !important;}
+
+/* LOADING */
+.loading-screen{
+  position:fixed;inset:0;background:var(--bg);z-index:8000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  transition:opacity 0.5s;
+}
+.loading-screen.hide{opacity:0;pointer-events:none;}
+.loader{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-screen p{font-size:13px;color:var(--muted);font-family:var(--mono);}
+
+/* RESPONSIVE TABLET */
+@media(max-width:900px){
+  .sidebar{width:240px;}
+  .search-wrap{width:160px;}
+}
+
+/* RESPONSIVE MOBILE */
+@media(max-width:600px){
+  .navbar{height:52px;padding:0 12px;}
+  .logo-text{font-size:15px;}
+  .logo-icon{width:27px;height:27px;font-size:14px;}
+  .search-wrap{width:120px;padding:0 10px;}
+  .search-wrap input{font-size:12px;}
+  .live-badge span{display:none;}
+  .layout{flex-direction:column;height:calc(100vh - 52px - 58px);}
+  .sidebar{
+    width:100%;border-right:none;display:none;flex-shrink:0;
+  }
+  .sidebar.mobile-open{
+    display:flex;flex-direction:column;height:62vh;overflow-y:auto;
+    position:fixed;bottom:58px;left:0;right:0;z-index:800;
+    background:var(--panel);border-top:2px solid var(--accent);
+    border-radius:20px 20px 0 0;animation:slide-up 0.3s ease;
+  }
+  @keyframes slide-up{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .map-wrap{flex:1;height:100%;}
+  .map-overlay{top:8px;padding:7px 12px;gap:12px;}
+  .overlay-val{font-size:12px;}
+  .overlay-lbl{font-size:8px;}
+  .sos-btn{bottom:68px;right:12px;padding:9px 16px;font-size:12px;}
+  .fb-status{bottom:68px;left:12px;font-size:10px;padding:4px 10px;}
+  .watermark{bottom:108px;}
+  .bus-list{max-height:none;}
+  .mobile-tabs{display:flex !important;}
+}
+
+/* MOBILE TABS */
+.mobile-tabs{
+  display:none;position:fixed;bottom:0;left:0;right:0;height:58px;
+  background:var(--panel);border-top:1px solid var(--border);z-index:900;
+  align-items:center;justify-content:space-around;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.tab-btn{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  font-family:var(--font);font-size:9px;padding:6px 16px;
+  border-radius:10px;transition:all 0.2s;flex:1;
+}
+.tab-btn .ti{font-size:19px;}
+.tab-btn.active{color:var(--accent);background:rgba(0,212,255,0.08);}
+.tab-btn:active{transform:scale(0.9);}
+
+/* No data state */
+.no-buses{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:200px;color:var(--muted);font-size:13px;text-align:center;gap:8px;
+}
+.no-buses .icon{font-size:32px;}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loader"></div>
+  <p>Connecting to BusTrack...</p>
+</div>
+
+<nav class="navbar">
+  <div class="logo">
+    <div class="logo-icon">🚌</div>
+    <div class="logo-text">Bus<span>Track</span></div>
+  </div>
+  <div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="Search bus ID..."/>
+    <button class="search-btn" onclick="searchBus()">⌕</button>
+  </div>
+  <div class="live-badge">
+    <div class="live-dot"></div>
+    <span>LIVE</span>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">Active Buses (<span id="busCount">0</span>)</div>
+    <div class="bus-list" id="busList">
+      <div class="no-buses">
+        <div class="icon">🚌</div>
+        <div>Loading buses...</div>
+      </div>
+    </div>
+    <div class="details-panel">
+      <div class="details-title">Bus Details</div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-icon">⚡</div><div class="stat-value" id="d-speed">—</div><div class="stat-label">km/h</div></div>
+        <div class="stat-box"><div class="stat-icon">⏱️</div><div class="stat-value" id="d-eta">—</div><div class="stat-label">ETA min</div></div>
+        <div class="stat-box"><div class="stat-icon">🛑</div><div class="stat-value" id="d-stops">—</div><div class="stat-label">Stops left</div></div>
+        <div class="stat-box"><div class="stat-icon">📍</div><div class="stat-value" id="d-acc">—</div><div class="stat-label">GPS acc</div></div>
+      </div>
+      <div class="stops-title">Route & Stops</div>
+      <div class="timeline" id="stopsList"><div style="color:var(--muted);font-size:12px;padding:8px 0">Select a bus to see stops</div></div>
+    </div>
+  </aside>
+
+  <div class="map-wrap">
+    <div class="map-overlay">
+      <div class="overlay-item"><div class="overlay-val" id="ov-bus">—</div><div class="overlay-lbl">Bus</div></div>
+      <div class="overlay-sep"></div>
+      <div class="overlay-item"><div class="overlay-val" id="ov-loc">Connecting...</div><div class="overlay-lbl">Location</div></div>
+      <div class="overlay-sep"></div>
+      <div class="overlay-item"><div class="overlay-val" id="ov-speed">—</div><div class="overlay-lbl">km/h</div></div>
+    </div>
+    <div id="map"></div>
+    <div class="fb-status" id="fbStatus">🔄 Connecting...</div>
+    <div class="watermark">made by rohit</div>
+    <button class="sos-btn" onclick="triggerSOS()">🆘 SOS</button>
+  </div>
+</div>
+
+<nav class="mobile-tabs">
+  <button class="tab-btn active" id="tab-map" onclick="switchTab('map')"><span class="ti">🗺️</span>Map</button>
+  <button class="tab-btn" id="tab-buses" onclick="switchTab('buses')"><span class="ti">🚌</span>Buses</button>
+  <button class="tab-btn" id="tab-search" onclick="switchTab('search')"><span class="ti">🔍</span>Search</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBRhyAtV5I56gK_JnOJu3lgKKyG35exVzU",
+  authDomain: "college-busses.firebaseapp.com",
+  databaseURL: "https://college-busses-default-rtdb.firebaseio.com",
+  projectId: "college-busses",
+  storageBucket: "college-busses.firebasestorage.app",
+  messagingSenderId: "508998049229",
+  appId: "1:508998049229:web:77b7eb5fca95ba43fe7884"
+};
+
+// Security — no inspect
+document.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('keydown',e=>{
+  if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&['I','J','C'].includes(e.key))||(e.ctrlKey&&e.key==='U'))
+    e.preventDefault();
+});
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+let busesConfig = {};   // from buses_config
+let liveData    = {};   // from buses (live GPS)
+let activeBus   = null;
+let busMarkers  = {};
+let map;
+
+// MAP INIT
+map = L.map('map',{zoomControl:true}).setView([28.6139,77.2090],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+
+// LOAD BUSES CONFIG FROM FIREBASE
+get(ref(db,'buses_config')).then(snap=>{
+  busesConfig = snap.val() || {};
+  renderBusList();
+  document.getElementById('loadingScreen').classList.add('hide');
+}).catch(()=>{
+  document.getElementById('loadingScreen').classList.add('hide');
+  toast('⚠️ Could not load bus config');
+});
+
+// LISTEN LIVE GPS DATA
+onValue(ref(db,'buses'), snap=>{
+  const data = snap.val() || {};
+  liveData = data;
+  const fbStatus = document.getElementById('fbStatus');
+
+  if(Object.keys(data).length > 0){
+    fbStatus.textContent='✅ Firebase Live — Real GPS';
+    fbStatus.className='fb-status connected';
+  } else {
+    fbStatus.textContent='⚠️ Waiting for drivers to go live';
+    fbStatus.className='fb-status';
+  }
+
+  // Update all bus markers + cards
+  Object.keys(data).forEach(busId=>{
+    updateBusMarker(busId, data[busId]);
+    // Update live dot on card
+    const dot = document.getElementById('dot-'+busId);
+    if(dot) dot.classList.add('live');
+    // Update status badge
+    const badge = document.getElementById('badge-'+busId);
+    if(badge){ badge.textContent='● Running'; badge.className='bus-status running'; }
+  });
+
+  // Mark offline buses
+  Object.keys(busesConfig).forEach(busId=>{
+    if(!data[busId]){
+      const dot = document.getElementById('dot-'+busId);
+      if(dot) dot.classList.remove('live');
+      const badge = document.getElementById('badge-'+busId);
+      if(badge){ badge.textContent='● Offline'; badge.className='bus-status offline'; }
+      // Remove marker if bus went offline
+      if(busMarkers[busId]){ map.removeLayer(busMarkers[busId]); delete busMarkers[busId]; }
+    }
+  });
+
+  // If active bus has live data, update details
+  if(activeBus && data[activeBus]) updateDetails(activeBus, data[activeBus]);
+
+  // Update dashboard count
+  document.getElementById('busCount').textContent = Object.keys(busesConfig).length;
+}, err=>{
+  document.getElementById('fbStatus').textContent='❌ Firebase error — check internet';
+  document.getElementById('fbStatus').className='fb-status error';
+});
+
+// RENDER BUS LIST
+function renderBusList(){
+  const list = document.getElementById('busList');
+  const keys = Object.keys(busesConfig);
+  document.getElementById('busCount').textContent = keys.length;
+
+if(!keys.length){
+    list.innerHTML='<div class="no-buses"><div class="icon">🚌</div><div>No buses configured yet.<br>Ask admin to add buses.</div></div>';
+    return;
+  }
+  list.innerHTML = keys.map(id=>{
+    const b = busesConfig[id];
+    return `<div class="bus-card" id="card-${id}" onclick="selectBus('${id}',this)">
+      <div class="bus-card-top">
+        <span class="bus-number">${id} <span class="fb-dot" id="dot-${id}"></span></span>
+        <span class="bus-status offline" id="badge-${id}">● Offline</span>
+      </div>
+      <div class="bus-route">${b.route||'Route not set'}</div>
+      <div class="bus-driver">👤 ${b.driver||'Driver'}</div>
+    </div>`;
+  }).join('');
+
+  // Select first bus by default
+  if(keys.length > 0){
+    const firstId = keys[0];
+    selectBus(firstId, document.getElementById('card-'+firstId));
+  }
+}
+
+// SELECT BUS
+window.selectBus = function(id, cardEl){
+  activeBus = id;
+  document.querySelectorAll('.bus-card').forEach(c=>c.classList.remove('active'));
+  cardEl.classList.add('active');
+
+  const b = busesConfig[id];
+  document.getElementById('ov-bus').textContent = id;
+
+  // Render stops
+  renderStops(b.stops || []);
+
+  if(liveData[id]){
+    updateDetails(id, liveData[id]);
+    map.flyTo([liveData[id].lat, liveData[id].lng], 15, {duration:1.2});
+  } else {
+    document.getElementById('d-speed').textContent='—';
+    document.getElementById('d-eta').textContent='—';
+    document.getElementById('d-stops').textContent='—';
+    document.getElementById('d-acc').textContent='—';
+    document.getElementById('ov-loc').textContent='Offline';
+    document.getElementById('ov-speed').textContent='—';
+    map.setView([28.6139,77.2090],13);
+  }
+  toast(`🚌 ${id} — ${b.name||''}`);
+};
+
+function updateDetails(busId, d){
+  document.getElementById('d-speed').textContent = d.speed||0;
+  document.getElementById('d-eta').textContent   = '—';
+  document.getElementById('d-stops').textContent = '—';
+  document.getElementById('d-acc').textContent   = d.accuracy ? d.accuracy+'m' : '—';
+  document.getElementById('ov-bus').textContent  = busId;
+  document.getElementById('ov-loc').textContent  = `${d.lat?.toFixed(3)},${d.lng?.toFixed(3)}`;
+  document.getElementById('ov-speed').textContent= (d.speed||0)+' km/h';
+}
+
+// UPDATE MAP MARKER
+function updateBusMarker(busId, d){
+  const b = busesConfig[busId] || {};
+  const color = b.color || '#00d4ff';
+  const icon = L.divIcon({
+    html:<div style="background:${color};color:#080c14;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;box-shadow:0 0 20px ${color}99;white-space:nowrap;">🚌 ${busId}</div>,
+    className:'',iconAnchor:[35,16]
+  });
+  if(busMarkers[busId]){
+    busMarkers[busId].setLatLng([d.lat,d.lng]);
+    busMarkers[busId].getPopup()?.setContent(popupContent(busId,d,b));
+  } else {
+    busMarkers[busId] = L.marker([d.lat,d.lng],{icon}).addTo(map)
+      .bindPopup(popupContent(busId,d,b));
+  }
+}
+
+function popupContent(id,d,b){
+  return `<b style="color:${b.color||'#00d4ff'}">${id}</b><br>
+    ${b.name||''}<br>Speed: ${d.speed||0} km/h<br>
+    Driver: ${b.driver||'—'}<br>
+    Updated: ${new Date(d.timestamp).toLocaleTimeString()}`;
+}
+
+// STOPS RENDER
+function renderStops(stops){
+  const list = document.getElementById('stopsList');
+  if(!stops.length){list.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px 0">No stops configured</div>';return;}
+  list.innerHTML = stops.map((s,i)=>{
+    const state = i===0?'current':(i<stops.length-1?'upcoming':'upcoming');
+    let tag='';
+    if(i===0) tag='<span class="stop-tag current-tag">HERE</span>';
+    else if(i===1) tag='<span class="stop-tag next-tag">NEXT</span>';
+    return `<div class="stop-item ${state}">
+      <span class="stop-name ${state}">${s}</span>${tag}
+    </div>`;
+  }).join('');
+}
+
+// SEARCH
+window.searchBus = function(){
+  const val = document.getElementById('searchInput').value.trim().toUpperCase();
+  if(busesConfig[val]){
+    const card = document.getElementById('card-'+val);
+    if(card){ selectBus(val,card); card.scrollIntoView({behavior:'smooth'}); }
+  } else {
+    toast(`❌ "${val}" not found`);
+  }
+};
+document.getElementById('searchInput').addEventListener('keypress',e=>{if(e.key==='Enter')window.searchBus();});
+
+// SOS
+window.triggerSOS = function(){
+  set(ref(db,'sos/'+Date.now()),{bus:activeBus,timestamp:Date.now(),msg:'SOS from student app'});
+  toast('🆘 SOS Alert sent to admin!');
+};
+
+// MOBILE TABS
+window.switchTab = function(tab){
+  const sidebar = document.getElementById('sidebar');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='map'){
+    sidebar.classList.remove('mobile-open');
+  } else if(tab==='buses'){
+    sidebar.classList.contains('mobile-open')
+      ? (sidebar.classList.remove('mobile-open'), document.getElementById('tab-map').classList.add('active'), document.getElementById('tab-buses').classList.remove('active'))
+      : sidebar.classList.add('mobile-open');
+  } else if(tab==='search'){
+    sidebar.classList.remove('mobile-open');
+    document.getElementById('searchInput').focus();
+  }
+};
+
+document.querySelectorAll('.bus-card').forEach&&document.addEventListener('click',e=>{
+  if(e.target.closest('.bus-card') && window.innerWidth<=600){
+    setTimeout(()=>{
+      document.getElementById('sidebar').classList.remove('mobile-open');
+      document.getElementById('tab-map').classList.add('active');
+      document.getElementById('tab-buses').classList.remove('active');
+    },400);
+  }
+});
+
+// TOAST
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+window.toast=toast;
+</script>
+</body>
+</html>

@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Admin Portal — BusTrack</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#080c14;--surface:#0d1421;--panel:#111827;--border:#1e2d45;
+  --accent:#00d4ff;--green:#00e676;--red:#ff3d57;--orange:#ff6b35;
+  --text:#e8edf5;--muted:#5a7090;
+  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* LOGIN SCREEN */
+.login-screen{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;
+  background-image:radial-gradient(ellipse at 20% 50%,rgba(0,212,255,0.04) 0%,transparent 60%),
+                   radial-gradient(ellipse at 80% 20%,rgba(168,85,247,0.04) 0%,transparent 60%);
+}
+.login-box{
+  width:100%;max-width:400px;padding:40px;margin:16px;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:20px;box-shadow:0 24px 80px rgba(0,0,0,0.6);
+}
+.login-logo{text-align:center;margin-bottom:32px;}
+.login-logo .icon{
+  width:60px;height:60px;background:var(--accent);border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;margin:0 auto 12px;
+  box-shadow:0 0 30px rgba(0,212,255,0.4);
+}
+.login-logo h1{font-size:22px;font-weight:700;}
+.login-logo h1 span{color:var(--accent);}
+.login-logo p{font-size:12px;color:var(--muted);margin-top:4px;}
+.login-field{margin-bottom:16px;}
+.login-field label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:8px;}
+.login-field input{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:12px 16px;color:var(--text);
+  font-family:var(--mono);font-size:14px;outline:none;
+  transition:border-color 0.2s;
+}
+.login-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,0.1);}
+.login-btn{
+  width:100%;padding:14px;background:var(--accent);color:#080c14;
+  border:none;border-radius:10px;font-family:var(--font);
+  font-size:15px;font-weight:700;cursor:pointer;
+  transition:all 0.2s;margin-top:8px;letter-spacing:0.5px;
+}
+.login-btn:hover{background:#33ddff;box-shadow:0 8px 24px rgba(0,212,255,0.4);}
+.login-btn:active{transform:scale(0.98);}
+.login-error{
+  background:rgba(255,61,87,0.1);border:1px solid rgba(255,61,87,0.3);
+  color:var(--red);border-radius:10px;padding:10px 14px;
+  font-size:13px;margin-top:12px;display:none;text-align:center;
+}
+.login-error.show{display:block;}
+.login-attempts{font-size:11px;color:var(--muted);text-align:center;margin-top:10px;}
+
+/* NAVBAR */
+.navbar{
+  height:60px;background:var(--panel);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;position:sticky;top:0;z-index:100;
+}
+.nav-logo{display:flex;align-items:center;gap:10px;}
+.nav-logo .icon{
+  width:34px;height:34px;background:var(--accent);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  box-shadow:0 0 16px rgba(0,212,255,0.4);
+}
+.nav-logo h1{font-size:17px;font-weight:700;}
+.nav-logo h1 span{color:var(--accent);}
+.nav-right{display:flex;align-items:center;gap:12px;}
+.admin-badge{
+  background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);
+  color:var(--accent);border-radius:8px;padding:6px 12px;
+  font-size:12px;font-family:var(--mono);
+}
+.logout-btn{
+  background:rgba(255,61,87,0.1);border:1px solid rgba(255,61,87,0.3);
+  color:var(--red);border-radius:8px;padding:6px 14px;
+  font-size:12px;cursor:pointer;font-family:var(--font);
+  transition:all 0.2s;
+}
+.logout-btn:hover{background:rgba(255,61,87,0.2);}
+
+/* MAIN LAYOUT */
+.main{display:flex;height:calc(100vh - 60px);}
+
+/* SIDEBAR NAV */
+.sidenav{
+  width:220px;background:var(--panel);border-right:1px solid var(--border);
+  padding:20px 12px;display:flex;flex-direction:column;gap:4px;flex-shrink:0;
+}
+.sidenav-item{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;
+  color:var(--muted);transition:all 0.2s;border:1px solid transparent;
+}
+.sidenav-item:hover{color:var(--text);background:rgba(255,255,255,0.04);}
+.sidenav-item.active{color:var(--accent);background:rgba(0,212,255,0.08);border-color:rgba(0,212,255,0.2);}
+.sidenav-item .icon{font-size:18px;}
+.sidenav-sep{height:1px;background:var(--border);margin:8px 0;}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:24px;}
+
+/* SECTION */
+.section{display:none;}
+.section.active{display:block;}
+
+/* PAGE TITLE */
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px;}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:16px;
+}
+.stat-card .val{font-size:28px;font-weight:700;font-family:var(--mono);color:var(--accent);}
+.stat-card .lbl{font-size:12px;color:var(--muted);margin-top:4px;}
+
+/* CARD */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:20px;margin-bottom:16px;
+}
+.card-title{font-size:14px;font-weight:600;margin-bottom:16px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+
+/* FORM */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;}
+.form-group input,.form-group select,.form-group textarea{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;padding:10px 12px;color:var(--text);
+  font-family:var(--font);font-size:13px;outline:none;
+  transition:border-color 0.2s;
+}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{
+  border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,212,255,0.1);
+}
+.form-group textarea{resize:vertical;min-height:80px;}
+.form-group select option{background:var(--surface);}
+
+/* BUTTONS */
+.btn{
+  padding:10px 18px;border-radius:8px;border:none;cursor:pointer;
+  font-family:var(--font);font-size:13px;font-weight:600;
+  transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;
+}
+.btn-primary{background:var(--accent);color:#080c14;}
+.btn-primary:hover{background:#33ddff;box-shadow:0 4px 16px rgba(0,212,255,0.3);}
+.btn-danger{background:rgba(255,61,87,0.15);color:var(--red);border:1px solid rgba(255,61,87,0.3);}
+.btn-danger:hover{background:rgba(255,61,87,0.25);}
+.btn-ghost{background:rgba(255,255,255,0.05);color:var(--text);border:1px solid var(--border);}
+.btn-ghost:hover{background:rgba(255,255,255,0.08);}
+.btn-success{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3);}
+.btn:active{transform:scale(0.97);}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{
+  text-align:left;padding:10px 14px;
+  border-bottom:1px solid var(--border);
+  color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;
+  font-weight:600;
+}
+tbody tr{border-bottom:1px solid rgba(30,45,69,0.5);transition:background 0.15s;}
+tbody tr:hover{background:rgba(255,255,255,0.02);}
+tbody td{padding:12px 14px;vertical-align:middle;}
+.bus-id-badge{
+  font-family:var(--mono);font-size:12px;padding:3px 10px;
+  background:rgba(0,212,255,0.1);color:var(--accent);
+  border-radius:6px;border:1px solid rgba(0,212,255,0.2);
+}
+.status-badge{
+  font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;
+}
+.status-badge.live{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3);}
+.status-badge.offline{background:rgba(90,112,144,0.15);color:var(--muted);border:1px solid var(--border);}
+.action-btns{display:flex;gap:6px;}
+
+/* STOP EDITOR */
+.stop-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.stop-row{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;padding:8px 12px;
+}
+.stop-row input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--text);font-family:var(--font);font-size:13px;
+}
+.stop-row .drag-handle{color:var(--muted);cursor:grab;font-size:16px;}
+.stop-row .del-stop{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px;}
+.stop-row .del-stop:hover{color:var(--red);}
+
+/* MODAL */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.7);
+  z-index:500;display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity 0.25s;
+  backdrop-filter:blur(4px);
+}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:16px;padding:28px;width:100%;max-width:540px;
+  margin:16px;max-height:90vh;overflow-y:auto;
+  transform:scale(0.95);transition:transform 0.25s;
+}
+.modal-overlay.open .modal{transform:scale(1);}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:4px;}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:20px;}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--surface);border:1px solid var(--accent);border-radius:10px;
+  padding:12px 24px;font-size:13px;color:var(--accent);z-index:9999;
+  opacity:0;transition:all 0.3s;pointer-events:none;font-family:var(--mono);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Live map mini */
+.live-map-mini{
+  height:180px;border-radius:10px;overflow:hidden;border:1px solid var(--border);
+  margin-top:12px;
+}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidenav{display:none;}
+  .sidenav.mobile-open{
+    display:flex;position:fixed;left:0;top:60px;bottom:0;z-index:200;
+    width:220px;box-shadow:8px 0 32px rgba(0,0,0,0.5);
+  }
+  .content{padding:16px;}
+  .form-row{grid-template-columns:1fr;}
+  .stats-row{grid-template-columns:1fr 1fr;}
+  .navbar{padding:0 16px;}
+}
+@media(max-width:480px){
+  .stats-row{grid-template-columns:1fr;}
+  .page-title{font-size:18px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="icon">🚌</div>
+      <h1>Bus<span>Track</span> Admin</h1>
+      <p>Admin access only — Authorized personnel</p>
+    </div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Enter username" autocomplete="off"/>
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Enter password" onkeypress="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In →</button>
+    <div class="login-error" id="loginError">❌ Invalid credentials. Access denied.</div>
+    <div class="login-attempts" id="loginAttempts"></div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="mainApp" style="display:none;">
+
+<nav class="navbar">
+  <div class="nav-logo">
+    <div class="icon">🚌</div>
+    <h1>Bus<span>Track</span> <span style="color:var(--muted);font-weight:400;font-size:13px;">Admin</span></h1>
+  </div>
+  <div class="nav-right">
+    <div class="admin-badge">👤 Rohit Mehra</div>
+    <button class="logout-btn" onclick="doLogout()">Logout</button>
+  </div>
+</nav>
+
+<div class="main">
+  <!-- SIDEBAR -->
+  <aside class="sidenav" id="sidenav">
+    <div class="sidenav-item active" onclick="showSection('dashboard',this)">
+      <span class="icon">📊</span> Dashboard
+    </div>
+    <div class="sidenav-item" onclick="showSection('buses',this)">
+      <span class="icon">🚌</span> Manage Buses
+    </div>
+    <div class="sidenav-item" onclick="showSection('drivers',this)">
+      <span class="icon">👤</span> Drivers
+    </div>
+    <div class="sidenav-item" onclick="showSection('live',this)">
+      <span class="icon">📍</span> Live Tracking
+    </div>
+    <div class="sidenav-sep"></div>
+    <div class="sidenav-item" onclick="showSection('settings',this)">
+      <span class="icon">⚙️</span> Settings
+    </div>
+  </aside>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="section active" id="sec-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">Welcome back, Rohit Mehra. Here's your fleet overview.</div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="val" id="stat-total">0</div>
+          <div class="lbl">Total Buses</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="stat-live" style="color:var(--green)">0</div>
+          <div class="lbl">Live Now</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="stat-offline" style="color:var(--muted)">0</div>
+          <div class="lbl">Offline</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="stat-drivers">0</div>
+          <div class="lbl">Drivers Registered</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Live Bus Status</div>
+        <div class="table-wrap">
+          <table id="dashTable">
+            <thead><tr>
+              <th>Bus ID</th><th>Bus Name</th><th>Driver</th><th>Status</th><th>Last Seen</th>
+            </tr></thead>
+            <tbody id="dashTableBody"><tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">Loading buses...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUSES -->
+    <div class="section" id="sec-buses">
+      <div class="page-title">Manage Buses</div>
+      <div class="page-sub">Add, edit, or delete buses. Each bus gets a unique login ID for the driver.</div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="openAddBus()">+ Add New Bus</button>
+        <button class="btn btn-ghost" onclick="loadBuses()">⟳ Refresh</button>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Bus ID</th><th>Bus Name</th><th>Route</th><th>Driver Name</th><th>Stops</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="busTableBody"><tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- DRIVERS -->
+    <div class="section" id="sec-drivers">
+      <div class="page-title">Driver Credentials</div>
+      <div class="page-sub">Each driver logs in with their Bus ID as username. Password is set here.</div>
+      <div class="card">
+        <div class="card-title">All Driver Logins</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Bus ID (Login)</th><th>Driver Name</th><th>Password</th><th>Bus Name</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="driverTableBody"><tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE TRACKING -->
+    <div class="section" id="sec-live">
+      <div class="page-title">Live Tracking</div>
+      <div class="page-sub">Real-time GPS of all active buses from Firebase.</div>
+      <div class="card">
+        <div id="adminMap" style="height:420px;border-radius:10px;overflow:hidden;"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Active Bus Locations</div>
+        <div id="liveList" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="section" id="sec-settings">
+      <div class="page-title">Settings</div>
+      <div class="page-sub">Admin account settings.</div>
+      <div class="card">
+        <div class="card-title">Admin Info</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Admin Name</label>
+            <input type="text" value="Rohit Mehra" readonly style="opacity:0.6"/>
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <input type="text" value="Super Admin" readonly style="opacity:0.6"/>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:8px;">Contact developer to change admin credentials.</p>
+      </div>
+    </div>
+
+  </div><!-- end content -->
+</div><!-- end main -->
+</div><!-- end mainApp -->
+
+<!-- ===== ADD/EDIT BUS MODAL ===== -->
+<div class="modal-overlay" id="busModal">
+  <div class="modal">
+    <div class="modal-title" id="busModalTitle">Add New Bus</div>
+    <div class="modal-sub">Fill all details. Bus ID will be driver's login username.</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Bus ID (Unique) *</label>
+        <input type="text" id="fBusId" placeholder="e.g. BUS001" style="text-transform:uppercase"/>
+      </div>
+      <div class="form-group">
+        <label>Bus Name / Number *</label>
+        <input type="text" id="fBusName" placeholder="e.g. City Express"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Route</label>
+        <input type="text" id="fRoute" placeholder="e.g. College → City Center"/>
+      </div>
+      <div class="form-group">
+        <label>Driver Name</label>
+        <input type="text" id="fDriver" placeholder="e.g. Ramesh Kumar"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Driver Password</label>
+        <input type="text" id="fPass" placeholder="Set login password for driver"/>
+      </div>
+      <div class="form-group">
+        <label>Bus Color</label>
+        <input type="color" id="fColor" value="#00d4ff"/>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Stops (add each stop)</label>
+      <div class="stop-list" id="stopList"></div>
+      <button class="btn btn-ghost" onclick="addStopField()" style="font-size:12px;padding:7px 14px;">+ Add Stop</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('busModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBus()">Save Bus →</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width:380px;text-align:center;">
+    <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
+    <div class="modal-title">Delete Bus?</div>
+    <div class="modal-sub" id="deleteModalSub">This will permanently remove the bus and driver credentials.</div>
+    <div class="modal-footer" style="justify-content:center;">
+      <button class="btn btn-ghost" onclick="closeModal('deleteModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, remove, onValue, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBRhyAtV5I56gK_JnOJu3lgKKyG35exVzU",
+  authDomain: "college-busses.firebaseapp.com",
+  databaseURL: "https://college-busses-default-rtdb.firebaseio.com",
+  projectId: "college-busses",
+  storageBucket: "college-busses.firebasestorage.app",
+  messagingSenderId: "508998049229",
+  appId: "1:508998049229:web:77b7eb5fca95ba43fe7884"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ── Security: disable right-click & devtools hints ──
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&['I','J','C'].includes(e.key))||(e.ctrlKey&&e.key==='U'))
+    e.preventDefault();
+});
+
+// ── Login ──
+const ADMIN_USER = "rohit mehra";
+const ADMIN_PASS = "rohit@2309";
+let loginAttempts = 0;
+const MAX_ATTEMPTS = 5;
+
+window.doLogin = function(){
+  const u = document.getElementById('loginUser').value.trim().toLowerCase();
+  const p = document.getElementById('loginPass').value;
+  loginAttempts++;
+  if(u === ADMIN_USER && p === ADMIN_PASS){
+    sessionStorage.setItem('admin_auth','1');
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('mainApp').style.display='block';
+    loadBuses();
+    initAdminMap();
+    toast('✅ Welcome, Rohit Mehra!');
+  } else {
+    document.getElementById('loginError').classList.add('show');
+    document.getElementById('loginAttempts').textContent =
+      `Attempt ${loginAttempts}/${MAX_ATTEMPTS}`;
+    if(loginAttempts >= MAX_ATTEMPTS){
+      document.querySelector('.login-btn').disabled=true;
+      document.getElementById('loginAttempts').textContent='Too many attempts. Refresh page.';
+    }
+    setTimeout(()=> document.getElementById('loginError').classList.remove('show'), 3000);
+  }
+};
+
+window.doLogout = function(){
+  sessionStorage.removeItem('admin_auth');
+  location.reload();
+};
+
+// Check if already logged in
+if(sessionStorage.getItem('admin_auth')==='1'){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+}
+
+// ── Section switch ──
+window.showSection = function(id, el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.sidenav-item').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  el.classList.add('active');
+  if(id==='buses') loadBuses();
+  if(id==='drivers') loadDrivers();
+  if(id==='dashboard') loadDashboard();
+  if(id==='live') loadLive();
+};
+
+// ── BUSES DATA ──
+let busesData = {};
+let editingBusId = null;
+let deletingBusId = null;
+
+const busesRef = ref(db,'buses_config');
+
+function loadBuses(){
+  get(busesRef).then(snap=>{
+    busesData = snap.val() || {};
+    renderBusTable();
+    renderDashboard();
+  });
+}
+
+function loadDashboard(){ renderDashboard(); }
+
+function renderBusTable(){
+  const tbody = document.getElementById('busTableBody');
+  const keys = Object.keys(busesData);
+  if(!keys.length){
+    tbody.innerHTML='<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">No buses added yet. Click "+ Add New Bus"</td></tr>';
+    return;
+  }
+  tbody.innerHTML = keys.map(id=>{
+    const b = busesData[id];
+    return `<tr>
+      <td><span class="bus-id-badge">${id}</span></td>
+      <td>${b.name||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${b.route||'—'}</td>
+      <td>${b.driver||'—'}</td>
+      <td><span style="font-family:var(--mono);font-size:12px">${(b.stops||[]).length} stops</span></td>
+      <td><span class="status-badge offline">Offline</span></td>
+      <td><div class="action-btns">
+        <button class="btn btn-ghost" style="padding:5px 10px;font-size:12px" onclick="openEditBus('${id}')">✏️ Edit</button>
+        <button class="btn btn-danger" style="padding:5px 10px;font-size:12px" onclick="openDelete('${id}')">🗑️ Delete</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDashboard(){
+  const keys = Object.keys(busesData);
+  document.getElementById('stat-total').textContent = keys.length;
+  document.getElementById('stat-drivers').textContent = keys.length;
+  // Live count from Firebase locations
+  get(ref(db,'buses')).then(snap=>{
+    const live = snap.val() ? Object.keys(snap.val()).length : 0;
+    document.getElementById('stat-live').textContent = live;
+    document.getElementById('stat-offline').textContent = keys.length - live;
+  });
+  const dashBody = document.getElementById('dashTableBody');
+  if(!keys.length){
+    dashBody.innerHTML='<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">No buses configured.</td></tr>';
+    return;
+  }
+  get(ref(db,'buses')).then(snap=>{
+    const liveData = snap.val()||{};
+    dashBody.innerHTML = keys.map(id=>{
+      const b = busesData[id];
+      const isLive = !!liveData[id];
+      const lastSeen = liveData[id]?.timestamp
+        ? new Date(liveData[id].timestamp).toLocaleTimeString()
+        : 'Never';
+      return `<tr>
+        <td><span class="bus-id-badge">${id}</span></td>
+        <td>${b.name||'—'}</td>
+        <td>${b.driver||'—'}</td>
+        <td><span class="status-badge ${isLive?'live':'offline'}">${isLive?'● Live':'● Offline'}</span></td>
+        <td style="font-size:12px;color:var(--muted)">${lastSeen}</td>
+      </tr>`;
+    }).join('');
+  });
+}
+
+function loadDrivers(){
+  get(busesRef).then(snap=>{
+    busesData = snap.val()||{};
+    const keys = Object.keys(busesData);
+    const tbody = document.getElementById('driverTableBody');
+    if(!keys.length){
+      tbody.innerHTML='<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">No drivers yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = keys.map(id=>{
+      const b = busesData[id];
+      return `<tr>
+        <td><span class="bus-id-badge">${id}</span></td>
+        <td>${b.driver||'—'}</td>
+        <td><span style="font-family:var(--mono);font-size:12px;color:var(--accent)">${b.password||'—'}</span></td>
+        <td>${b.name||'—'}</td>
+        <td><button class="btn btn-ghost" style="padding:5px 10px;font-size:12px" onclick="openEditBus('${id}');showSection('buses',document.querySelector('.sidenav-item:nth-child(2)'))">✏️ Edit Password</button></td>
+      </tr>`;
+    }).join('');
+  });
+}
+
+// ── Admin Map ──
+let adminMap = null;
+let adminMarkers = {};
+
+function initAdminMap(){
+  if(adminMap) return;
+  setTimeout(()=>{
+    adminMap = L.map('adminMap').setView([28.6139,77.2090],13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© OpenStreetMap'
+    }).addTo(adminMap);
+  },300);
+}
+
+function loadLive(){
+  initAdminMap();
+  const liveRef = ref(db,'buses');
+  onValue(liveRef, snap=>{
+    const data = snap.val()||{};
+    const liveList = document.getElementById('liveList');
+    if(!Object.keys(data).length){
+      liveList.innerHTML='<p style="color:var(--muted);font-size:13px">No buses are live right now. Drivers need to open driver.html and share location.</p>';
+      return;
+    }
+    liveList.innerHTML='';
+    Object.entries(data).forEach(([busId,d])=>{
+      const busName = busesData[busId]?.name || busId;
+      const div = document.createElement('div');
+      div.style.cssText='display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 16px;';
+      div.innerHTML=`
+        <span class="bus-id-badge">${busId}</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600">${busName}</div>
+          <div style="font-size:11px;color:var(--muted)">📍 ${d.lat?.toFixed(5)}, ${d.lng?.toFixed(5)} · Speed: ${d.speed||0} km/h</div>
+        </div>
+        <span class="status-badge live">● Live</span>
+      `;
+      liveList.appendChild(div);
+
+      // Update map marker
+      if(adminMap){
+        const icon = L.divIcon({
+          html:`<div style="background:#00d4ff;color:#080c14;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:700">${busId}</div>`,
+          className:'',iconAnchor:[30,12]
+        });
+        if(adminMarkers[busId]) adminMarkers[busId].setLatLng([d.lat,d.lng]);
+        else adminMarkers[busId]=L.marker([d.lat,d.lng],{icon}).addTo(adminMap).bindPopup(`${busId}<br>${busName}`);
+        adminMap.setView([d.lat,d.lng],14);
+      }
+    });
+  });
+}
+
+// ── ADD / EDIT BUS MODAL ──
+window.openAddBus = function(){
+  editingBusId = null;
+  document.getElementById('busModalTitle').textContent='Add New Bus';
+  document.getElementById('fBusId').value='';
+  document.getElementById('fBusId').readOnly=false;
+  document.getElementById('fBusName').value='';
+  document.getElementById('fRoute').value='';
+  document.getElementById('fDriver').value='';
+  document.getElementById('fPass').value='';
+  document.getElementById('fColor').value='#00d4ff';
+  document.getElementById('stopList').innerHTML='';
+  addStopField(); addStopField(); // 2 default stop fields
+  document.getElementById('busModal').classList.add('open');
+};
+
+window.openEditBus = function(id){
+  editingBusId = id;
+  const b = busesData[id];
+  document.getElementById('busModalTitle').textContent='Edit Bus — '+id;
+  document.getElementById('fBusId').value=id;
+  document.getElementById('fBusId').readOnly=true;
+  document.getElementById('fBusName').value=b.name||'';
+  document.getElementById('fRoute').value=b.route||'';
+  document.getElementById('fDriver').value=b.driver||'';
+  document.getElementById('fPass').value=b.password||'';
+  document.getElementById('fColor').value=b.color||'#00d4ff';
+  const sl = document.getElementById('stopList');
+  sl.innerHTML='';
+  (b.stops||[]).forEach(s=>addStopField(s));
+  document.getElementById('busModal').classList.add('open');
+};
+
+window.addStopField = function(val=''){
+  const div = document.createElement('div');
+  div.className='stop-row';
+  div.innerHTML=`<span class="drag-handle">⠿</span>
+    <input type="text" placeholder="Stop name e.g. College Gate" value="${val}"/>
+    <button class="del-stop" onclick="this.parentElement.remove()">✕</button>`;
+  document.getElementById('stopList').appendChild(div);
+};
+
+window.saveBus = async function(){
+  const id = document.getElementById('fBusId').value.trim().toUpperCase();
+  const name = document.getElementById('fBusName').value.trim();
+  const route = document.getElementById('fRoute').value.trim();
+  const driver = document.getElementById('fDriver').value.trim();
+  const password = document.getElementById('fPass').value.trim();
+  const color = document.getElementById('fColor').value;
+  const stops = [...document.querySelectorAll('#stopList .stop-row input')]
+    .map(i=>i.value.trim()).filter(Boolean);
+
+  if(!id||!name){toast('❌ Bus ID and Name are required!');return;}
+
+  const busData = { name, route, driver, password, color, stops, createdAt: Date.now() };
+  await set(ref(db, 'buses_config/'+id), busData);
+  busesData[id] = busData;
+  closeModal('busModal');
+  renderBusTable();
+  renderDashboard();
+  toast(`✅ Bus ${id} saved successfully!`);
+};
+
+window.openDelete = function(id){
+  deletingBusId = id;
+  document.getElementById('deleteModalSub').textContent=`Delete bus "${id}" — ${busesData[id]?.name}? This cannot be undone.`;
+  document.getElementById('deleteModal').classList.add('open');
+};
+
+window.confirmDelete = async function(){
+  if(!deletingBusId) return;
+  await remove(ref(db,'buses_config/'+deletingBusId));
+  await remove(ref(db,'buses/'+deletingBusId));
+  delete busesData[deletingBusId];
+  closeModal('deleteModal');
+  renderBusTable();
+  renderDashboard();
+  toast(`🗑️ Bus ${deletingBusId} deleted.`);
+  deletingBusId=null;
+};
+
+window.closeModal = function(id){
+  document.getElementById(id).classList.remove('open');
+};
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+  overlay.addEventListener('click',e=>{
+    if(e.target===overlay) overlay.classList.remove('open');
+  });
+});
+
+// ── TOAST ──
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ── INIT ──
+if(sessionStorage.getItem('admin_auth')==='1'){
+  loadBuses();
+  setTimeout(initAdminMap,500);
+}
+
+</script>
+</body>
+</html>
