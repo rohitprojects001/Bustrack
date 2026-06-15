@@ -1,242 +1,434 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
+<!-- ============================================================
+BASIC SETUP
+charset = Hindi/English sab characters support karo
+viewport = Mobile pe sahi size mein dikhe
+title = Browser tab mein naam
+manifest = PWA ke liye (app jaisi feel)
+theme-color = Phone status bar ka color
+============================================================ -->
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <title>BusTrack — College Transit</title>
 <meta name="description" content="Live bus tracking for college students"/>
 <meta name="theme-color" content="#080c14"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<!-- PWA (Progressive Web App) — Phone pe app jaisi install hogi -->
 <link rel="manifest" href="manifest.json"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="BusTrack"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
+
+<!-- FONTS — Google se 2 fonts load ho rahe hain -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+
+<!-- LEAFLET MAP — Free open source map library (Google Maps ka alternative) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
 <style>
-:root{
---bg:#080c14;--surface:#0d1421;--panel:#111827;--border:#1e2d45;
---accent:#00d4ff;--accent2:#ff6b35;--green:#00e676;--red:#ff3d57;
---text:#e8edf5;--muted:#5a7090;
---font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
-}
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text);}
-::-webkit-scrollbar{width:4px;}
-::-webkit-scrollbar-track{background:var(--surface);}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-
-/* NAVBAR */
-.navbar{
-height:56px;background:var(--panel);border-bottom:1px solid var(--border);
-display:flex;align-items:center;justify-content:space-between;
-padding:0 20px;position:relative;z-index:1000;
-padding-top:env(safe-area-inset-top);
-}
-.logo{display:flex;align-items:center;gap:10px;}
-.logo-icon{
-width:32px;height:32px;background:var(--accent);border-radius:8px;
-display:flex;align-items:center;justify-content:center;font-size:16px;
-box-shadow:0 0 16px rgba(0,212,255,0.4);
-animation:pulse-logo 3s ease-in-out infinite;flex-shrink:0;
-}
-@keyframes pulse-logo{0%,100%{box-shadow:0 0 16px rgba(0,212,255,0.4);}50%{box-shadow:0 0 28px rgba(0,212,255,0.8);}}
-.logo-text{font-size:18px;font-weight:700;letter-spacing:-0.5px;white-space:nowrap;}
-.logo-text span{color:var(--accent);}
-.search-wrap{
-display:flex;align-items:center;background:var(--surface);
-border:1px solid var(--border);border-radius:10px;
-padding:0 14px;gap:8px;transition:border-color 0.2s;width:220px;
-}
-.search-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,0.1);}
-.search-wrap input{background:none;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:13px;padding:9px 0;width:100%;}
-.search-wrap input::placeholder{color:var(--muted);}
-.search-btn{background:none;border:none;cursor:pointer;color:var(--accent);font-size:16px;padding:4px;transition:transform 0.2s;}
-.search-btn:hover{transform:scale(1.2);}
-.live-badge{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--green);font-family:var(--mono);letter-spacing:1px;white-space:nowrap;}
-.live-dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:blink-dot 1.2s ease-in-out infinite;}
-@keyframes blink-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(0.8);}}
-
-/* LAYOUT */
-.layout{display:flex;height:calc(100vh - 56px);}
-
-/* SIDEBAR */
-.sidebar{width:290px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
-.sidebar-header{padding:14px 18px 12px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;letter-spacing:2px;color:var(--muted);text-transform:uppercase;}
-.bus-list{padding:10px;display:flex;flex-direction:column;gap:7px;border-bottom:1px solid var(--border);overflow-y:auto;max-height:260px;}
-.bus-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px;cursor:pointer;transition:all 0.25s ease;position:relative;overflow:hidden;}
-.bus-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);transform:scaleY(0);transition:transform 0.25s ease;border-radius:0 2px 2px 0;}
-.bus-card:hover::before,.bus-card.active::before{transform:scaleY(1);}
-.bus-card:hover{border-color:var(--accent);background:rgba(0,212,255,0.05);transform:translateX(3px);}
-.bus-card.active{border-color:var(--accent);background:rgba(0,212,255,0.08);transform:translateX(3px);}
-.bus-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
-.bus-number{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--accent);}
-.fb-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block;margin-left:6px;transition:background 0.3s;vertical-align:middle;}
-.fb-dot.live{background:var(--green);box-shadow:0 0 6px var(--green);}
-.bus-status{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;}
-.bus-status.running{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3);}
-.bus-status.stopped{background:rgba(255,61,87,0.15);color:var(--red);border:1px solid rgba(255,61,87,0.3);}
-.bus-status.offline{background:rgba(90,112,144,0.12);color:var(--muted);border:1px solid var(--border);}
-.bus-route{font-size:11px;color:var(--muted);margin-bottom:3px;}
-.bus-driver{font-size:11px;color:var(--text);opacity:0.7;}
-
-/* DETAILS */
-.details-panel{flex:1;overflow-y:auto;padding:14px;}
-.details-title{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;}
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px;}
-.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px;text-align:center;transition:border-color 0.3s;}
-.stat-box:hover{border-color:var(--accent);}
-.stat-icon{font-size:16px;margin-bottom:3px;}
-.stat-value{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--accent);}
-.stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
-.stops-title{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
-.timeline{position:relative;padding-left:20px;}
-.timeline::before{content:'';position:absolute;left:5px;top:8px;bottom:8px;width:1px;background:var(--border);}
-.stop-item{position:relative;padding:7px 0 7px 14px;font-size:12px;display:flex;justify-content:space-between;align-items:center;}
-.stop-item::before{content:'';position:absolute;left:-15px;top:50%;transform:translateY(-50%);width:11px;height:11px;border-radius:50%;border:2px solid var(--border);background:var(--bg);transition:all 0.3s;}
-.stop-item.passed::before{background:var(--green);border-color:var(--green);}
-.stop-item.current::before{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px rgba(0,212,255,0.8);animation:pulse-stop 1.5s ease-in-out infinite;}
-@keyframes pulse-stop{0%,100%{box-shadow:0 0 8px rgba(0,212,255,0.6);}50%{box-shadow:0 0 20px rgba(0,212,255,1);}}
-.stop-name{color:var(--text);font-size:12px;}
-.stop-name.passed{color:var(--muted);}
-.stop-name.current{color:var(--accent);font-weight:600;}
-.stop-tag{font-size:9px;padding:2px 6px;border-radius:6px;font-family:var(--mono);}
-.current-tag{background:rgba(0,212,255,0.15);color:var(--accent);}
-.next-tag{background:rgba(255,107,53,0.15);color:var(--accent2);}
-
-/* MAP */
-.map-wrap{flex:1;position:relative;overflow:hidden;}
-#map{width:100%;height:100%;}
-.map-overlay{
-position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:500;
-background:rgba(13,20,33,0.92);border:1px solid var(--border);
-border-radius:12px;padding:9px 18px;display:flex;gap:20px;
-backdrop-filter:blur(8px);animation:slide-down 0.4s ease;white-space:nowrap;
-}
-@keyframes slide-down{from{opacity:0;transform:translateX(-50%) translateY(-10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
-.overlay-item{text-align:center;}
-.overlay-val{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--accent);}
-.overlay-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
-.overlay-sep{width:1px;background:var(--border);}
-.sos-btn{
-position:absolute;bottom:22px;right:18px;z-index:500;
-background:var(--red);color:white;border:none;border-radius:50px;
-padding:11px 20px;font-family:var(--font);font-size:13px;font-weight:700;
-cursor:pointer;letter-spacing:1px;
-box-shadow:0 4px 20px rgba(255,61,87,0.5);transition:all 0.2s;
-animation:sos-pulse 2s ease-in-out infinite;
-}
-@keyframes sos-pulse{0%,100%{box-shadow:0 4px 20px rgba(255,61,87,0.4);}50%{box-shadow:0 4px 32px rgba(255,61,87,0.8);}}
-.sos-btn:hover{transform:scale(1.05);}
-.fb-status{
-position:absolute;bottom:22px;left:18px;z-index:500;
-background:rgba(13,20,33,0.9);border:1px solid var(--border);
-border-radius:8px;padding:5px 14px;font-size:11px;
-font-family:var(--mono);color:var(--muted);
-backdrop-filter:blur(8px);transition:all 0.3s;white-space:nowrap;
-}
-.fb-status.connected{border-color:var(--green);color:var(--green);}
-.fb-status.error{border-color:var(--red);color:var(--red);}
-
-/* WATERMARK */
-.watermark{
-position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
-z-index:400;font-size:9px;color:rgba(90,112,144,0.5);
-font-family:var(--mono);pointer-events:none;white-space:nowrap;user-select:none;
+/* ============================================================
+CSS VARIABLES — Ek jagah colors define karo, poore page mein use karo
+Agar color change karna ho toh sirf yahan change karo
+============================================================ */
+:root {
+--bg: #080c14; /* sabse dark background */
+--surface: #0d1421; /* cards ka background */
+--panel: #111827; /* sidebar/navbar background */
+--border: #1e2d45; /* line/border color */
+--accent: #00d4ff; /* blue highlight color */
+--accent2: #ff6b35; /* orange color (next stop) */
+--green: #00e676; /* live/running ke liye green */
+--red: #ff3d57; /* SOS/error ke liye red */
+--text: #e8edf5; /* main text color */
+--muted: #5a7090; /* faded/grey text */
+--font: 'Space Grotesk', sans-serif; /* main font */
+--mono: 'JetBrains Mono', monospace; /* numbers ke liye monospace font */
 }
 
-/* TOAST */
-.toast{
-position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
-background:var(--surface);border:1px solid var(--accent);border-radius:10px;
-padding:11px 22px;font-size:13px;color:var(--accent);z-index:9999;
-opacity:0;transition:all 0.3s;pointer-events:none;font-family:var(--mono);
-}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+/* Sab elements ka default margin/padding zero karo */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* Leaflet dark */
-.leaflet-container{background:#0a0f1a !important;}
-.leaflet-tile{filter:brightness(0.6) saturate(0.4) hue-rotate(180deg);}
-.leaflet-popup-content-wrapper{background:var(--surface) !important;border:1px solid var(--border) !important;color:var(--text) !important;border-radius:10px !important;box-shadow:0 8px 32px rgba(0,0,0,0.5) !important;}
-.leaflet-popup-tip{background:var(--surface) !important;}
-.leaflet-popup-content{font-family:var(--font) !important;font-size:13px !important;}
-.leaflet-control-zoom a{background:var(--surface) !important;color:var(--text) !important;border-color:var(--border) !important;}
-.leaflet-control-zoom a:hover{background:var(--border) !important;}
-.leaflet-attribution-flag{display:none !important;}
+/* Page ka height 100% rakho, overflow hidden taaki double scrollbar na aaye */
+html, body { height: 100%; overflow: hidden; font-family: var(--font); background: var(--bg); color: var(--text); }
 
-/* LOADING */
-.loading-screen{
-position:fixed;inset:0;background:var(--bg);z-index:8000;
-display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
-transition:opacity 0.5s;
-}
-.loading-screen.hide{opacity:0;pointer-events:none;}
-.loader{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.loading-screen p{font-size:13px;color:var(--muted);font-family:var(--mono);}
+/* Custom scrollbar — thin aur dark */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-/* RESPONSIVE TABLET */
-@media(max-width:900px){.sidebar{width:240px;}.search-wrap{width:160px;}}
-
-/* RESPONSIVE MOBILE */
-@media(max-width:600px){
-.navbar{height:52px;padding:0 12px;}
-.logo-text{font-size:15px;}
-.logo-icon{width:27px;height:27px;font-size:14px;}
-.search-wrap{width:120px;padding:0 10px;}
-.search-wrap input{font-size:12px;}
-.live-badge span{display:none;}
-.layout{flex-direction:column;height:calc(100vh - 52px - 58px);}
-.sidebar{width:100%;border-right:none;display:none;flex-shrink:0;}
-.sidebar.mobile-open{
-display:flex;flex-direction:column;height:62vh;overflow-y:auto;
-position:fixed;bottom:58px;left:0;right:0;z-index:800;
-background:var(--panel);border-top:2px solid var(--accent);
-border-radius:20px 20px 0 0;animation:slide-up 0.3s ease;
-}
-@keyframes slide-up{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
-.map-wrap{flex:1;height:100%;}
-.map-overlay{top:8px;padding:7px 12px;gap:12px;}
-.overlay-val{font-size:12px;}
-.overlay-lbl{font-size:8px;}
-.sos-btn{bottom:68px;right:12px;padding:9px 16px;font-size:12px;}
-.fb-status{bottom:68px;left:12px;font-size:10px;padding:4px 10px;}
-.watermark{bottom:108px;}
-.bus-list{max-height:none;}
-.mobile-tabs{display:flex !important;}
+/* ============================================================
+NAVBAR — Top bar jisme logo, search aur LIVE badge hai
+============================================================ */
+.navbar {
+height: 56px;
+background: var(--panel);
+border-bottom: 1px solid var(--border);
+display: flex; /* items ko horizontal line mein rakho */
+align-items: center; /* vertically center karo */
+justify-content: space-between; /* left-center-right spread karo */
+padding: 0 20px;
+position: relative;
+z-index: 1000; /* sab cheezoin ke upar */
+padding-top: env(safe-area-inset-top); /* iPhone notch ke liye */
 }
 
-/* MOBILE TABS */
-.mobile-tabs{
-display:none;position:fixed;bottom:0;left:0;right:0;height:58px;
-background:var(--panel);border-top:1px solid var(--border);z-index:900;
-align-items:center;justify-content:space-around;
-padding-bottom:env(safe-area-inset-bottom);
-}
-.tab-btn{
-display:flex;flex-direction:column;align-items:center;gap:2px;
-background:none;border:none;cursor:pointer;color:var(--muted);
-font-family:var(--font);font-size:9px;padding:6px 16px;
-border-radius:10px;transition:all 0.2s;flex:1;
-}
-.tab-btn .ti{font-size:19px;}
-.tab-btn.active{color:var(--accent);background:rgba(0,212,255,0.08);}
-.tab-btn:active{transform:scale(0.9);}
+.logo { display: flex; align-items: center; gap: 10px; }
 
-/* No data state */
-.no-buses{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;color:var(--muted);font-size:13px;text-align:center;gap:8px;}
-.no-buses .icon{font-size:32px;}
+/* Logo icon — cyan square with bus emoji */
+.logo-icon {
+width: 32px; height: 32px;
+background: var(--accent);
+border-radius: 8px;
+display: flex; align-items: center; justify-content: center;
+font-size: 16px;
+box-shadow: 0 0 16px rgba(0,212,255,0.4);
+animation: pulse-logo 3s ease-in-out infinite; /* glowing animation */
+flex-shrink: 0;
+}
+
+/* Glow animation — logo ke around light blink karti hai */
+@keyframes pulse-logo {
+0%, 100% { box-shadow: 0 0 16px rgba(0,212,255,0.4); }
+50% { box-shadow: 0 0 28px rgba(0,212,255,0.8); }
+}
+
+.logo-text { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; white-space: nowrap; }
+.logo-text span { color: var(--accent); } /* "Track" part cyan hoga */
+
+/* Search bar */
+.search-wrap {
+display: flex; align-items: center;
+background: var(--surface);
+border: 1px solid var(--border);
+border-radius: 10px;
+padding: 0 14px; gap: 8px;
+transition: border-color 0.2s;
+width: 220px;
+}
+/* Jab search mein click karo toh border cyan ho jaaye */
+.search-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,0.1); }
+.search-wrap input { background: none; border: none; outline: none; color: var(--text); font-family: var(--mono); font-size: 13px; padding: 9px 0; width: 100%; }
+.search-wrap input::placeholder { color: var(--muted); }
+.search-btn { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 16px; padding: 4px; transition: transform 0.2s; }
+.search-btn:hover { transform: scale(1.2); }
+
+/* LIVE badge — green dot aur LIVE text */
+.live-badge { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--green); font-family: var(--mono); letter-spacing: 1px; white-space: nowrap; }
+.live-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: blink-dot 1.2s ease-in-out infinite; }
+@keyframes blink-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+
+/* ============================================================
+LAYOUT — Sidebar (left) + Map (right) side by side
+============================================================ */
+.layout { display: flex; height: calc(100vh - 56px); /* navbar height minus karo */ }
+
+/* ============================================================
+SIDEBAR — Left panel jisme bus list aur details hain
+============================================================ */
+.sidebar {
+width: 290px;
+background: var(--panel);
+border-right: 1px solid var(--border);
+display: flex;
+flex-direction: column; /* items upar se neeche */
+overflow: hidden;
+flex-shrink: 0; /* sidebar ka size change na ho */
+height: 100%;
+}
+
+.sidebar-header { padding: 14px 18px 12px; border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 600; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+
+/* Bus list — scroll hogi jab buses zyada hon */
+.bus-list {
+padding: 10px;
+display: flex;
+flex-direction: column;
+gap: 7px;
+border-bottom: 1px solid var(--border);
+overflow-y: auto; /* scroll enable */
+flex: 1; /* available space le lo */
+min-height: 0; /* flex bug fix — scroll ke liye zaroori */
+}
+
+/* Individual bus card */
+.bus-card {
+background: var(--surface);
+border: 1px solid var(--border);
+border-radius: 12px;
+padding: 13px 15px;
+cursor: pointer;
+transition: all 0.25s ease;
+position: relative;
+overflow: hidden;
+}
+
+/* Left side cyan line — active/hover pe dikhti hai */
+.bus-card::before {
+content: '';
+position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+background: var(--accent);
+transform: scaleY(0); /* chhupa ke rakho */
+transition: transform 0.25s ease;
+border-radius: 0 2px 2px 0;
+}
+.bus-card:hover::before, .bus-card.active::before { transform: scaleY(1); /* dikhao */ }
+
+.bus-card:hover { border-color: var(--accent); background: rgba(0,212,255,0.05); transform: translateX(3px); }
+.bus-card.active { border-color: var(--accent); background: rgba(0,212,255,0.08); transform: translateX(3px); }
+.bus-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.bus-number { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--accent); }
+
+/* Firebase live dot — green jab driver GPS share kare */
+.fb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); display: inline-block; margin-left: 6px; transition: background 0.3s; vertical-align: middle; }
+.fb-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+/* Bus status badge */
+.bus-status { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+.bus-status.running { background: rgba(0,230,118,0.15); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+.bus-status.stopped { background: rgba(255,61,87,0.15); color: var(--red); border: 1px solid rgba(255,61,87,0.3); }
+.bus-status.offline { background: rgba(90,112,144,0.12); color: var(--muted); border: 1px solid var(--border); }
+
+.bus-route { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+.bus-driver { font-size: 11px; color: var(--text); opacity: 0.7; }
+
+/* ============================================================
+DETAILS PANEL — Selected bus ki speed, ETA aur stops
+============================================================ */
+.details-panel { overflow-y: auto; padding: 14px; flex-shrink: 0; max-height: 45%; }
+.details-title { font-size: 10px; font-weight: 600; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+
+/* 2x2 grid — speed, ETA, stops, accuracy */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 12px; }
+.stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px; text-align: center; transition: border-color 0.3s; }
+.stat-box:hover { border-color: var(--accent); }
+.stat-icon { font-size: 16px; margin-bottom: 3px; }
+.stat-value { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--accent); }
+.stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+/* Stops timeline — vertical line with dots */
+.stops-title { font-size: 10px; font-weight: 600; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+.timeline { position: relative; padding-left: 20px; }
+.timeline::before { content: ''; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 1px; background: var(--border); }
+.stop-item { position: relative; padding: 7px 0 7px 14px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
+.stop-item::before { content: ''; position: absolute; left: -15px; top: 50%; transform: translateY(-50%); width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--border); background: var(--bg); transition: all 0.3s; }
+.stop-item.passed::before { background: var(--green); border-color: var(--green); }
+/* Current stop dot glows */
+.stop-item.current::before { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px rgba(0,212,255,0.8); animation: pulse-stop 1.5s ease-in-out infinite; }
+@keyframes pulse-stop { 0%, 100% { box-shadow: 0 0 8px rgba(0,212,255,0.6); } 50% { box-shadow: 0 0 20px rgba(0,212,255,1); } }
+.stop-name { color: var(--text); font-size: 12px; }
+.stop-name.passed { color: var(--muted); }
+.stop-name.current { color: var(--accent); font-weight: 600; }
+.stop-tag { font-size: 9px; padding: 2px 6px; border-radius: 6px; font-family: var(--mono); }
+.current-tag { background: rgba(0,212,255,0.15); color: var(--accent); }
+.next-tag { background: rgba(255,107,53,0.15); color: var(--accent2); }
+
+/* ============================================================
+MAP — Right side ka poora area
+============================================================ */
+.map-wrap { flex: 1; position: relative; overflow: hidden; }
+#map { width: 100%; height: 100%; }
+
+/* Map ke upar floating info bar — Bus ID, Location, Speed */
+.map-overlay {
+position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 500;
+background: rgba(13,20,33,0.92); border: 1px solid var(--border);
+border-radius: 12px; padding: 9px 18px;
+display: flex; gap: 20px;
+backdrop-filter: blur(8px); /* frosted glass effect */
+animation: slide-down 0.4s ease; white-space: nowrap;
+}
+@keyframes slide-down { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+.overlay-item { text-align: center; }
+.overlay-val { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--accent); }
+.overlay-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.overlay-sep { width: 1px; background: var(--border); }
+
+/* SOS Button — red glowing button bottom right */
+.sos-btn {
+position: absolute; bottom: 22px; right: 18px; z-index: 500;
+background: var(--red); color: white; border: none; border-radius: 50px;
+padding: 11px 20px; font-family: var(--font); font-size: 13px; font-weight: 700;
+cursor: pointer; letter-spacing: 1px;
+box-shadow: 0 4px 20px rgba(255,61,87,0.5); transition: all 0.2s;
+animation: sos-pulse 2s ease-in-out infinite;
+}
+@keyframes sos-pulse { 0%, 100% { box-shadow: 0 4px 20px rgba(255,61,87,0.4); } 50% { box-shadow: 0 4px 32px rgba(255,61,87,0.8); } }
+.sos-btn:hover { transform: scale(1.05); }
+
+/* Firebase status — bottom left mein connection status */
+.fb-status {
+position: absolute; bottom: 22px; left: 18px; z-index: 500;
+background: rgba(13,20,33,0.9); border: 1px solid var(--border);
+border-radius: 8px; padding: 5px 14px; font-size: 11px;
+font-family: var(--mono); color: var(--muted);
+backdrop-filter: blur(8px); transition: all 0.3s; white-space: nowrap;
+}
+.fb-status.connected { border-color: var(--green); color: var(--green); }
+.fb-status.error { border-color: var(--red); color: var(--red); }
+
+/* Rohit ka watermark — chota sa */
+.watermark {
+position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
+z-index: 400; font-size: 9px; color: rgba(90,112,144,0.5);
+font-family: var(--mono); pointer-events: none; white-space: nowrap; user-select: none;
+}
+
+/* ============================================================
+DISTANCE POPUP — Bus pe click karne pe dikhta hai
+============================================================ */
+.dist-popup {
+position: absolute; top: 70px; left: 50%; transform: translateX(-50%); z-index: 600;
+background: rgba(13,20,33,0.96); border: 1px solid var(--accent);
+border-radius: 14px; padding: 12px 22px; text-align: center;
+backdrop-filter: blur(10px);
+animation: pop-in 0.3s cubic-bezier(0.34,1.56,0.64,1); /* bouncy animation */
+display: none; white-space: nowrap;
+}
+.dist-popup.show { display: block; }
+@keyframes pop-in { from { opacity: 0; transform: translateX(-50%) scale(0.8); } to { opacity: 1; transform: translateX(-50%) scale(1); } }
+.dist-popup .dist-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent); }
+.dist-popup .dist-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.dist-popup .dist-close { position: absolute; top: 6px; right: 10px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; }
+
+/* My Location button — bottom right pe location icon */
+.my-loc-btn {
+position: absolute; bottom: 70px; right: 18px; z-index: 500;
+width: 40px; height: 40px; border-radius: 50%;
+background: rgba(13,20,33,0.92); border: 1px solid var(--border);
+color: var(--text); font-size: 18px; cursor: pointer;
+display: flex; align-items: center; justify-content: center;
+backdrop-filter: blur(8px); transition: all 0.2s;
+box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+.my-loc-btn:hover { border-color: var(--accent); color: var(--accent); }
+.my-loc-btn.locating { border-color: var(--accent); color: var(--accent); animation: spin 1s linear infinite; }
+
+/* ============================================================
+TOAST — Bottom mein temporary notification
+============================================================ */
+.toast {
+position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+background: var(--surface); border: 1px solid var(--accent); border-radius: 10px;
+padding: 11px 22px; font-size: 13px; color: var(--accent); z-index: 9999;
+opacity: 0; transition: all 0.3s; pointer-events: none; font-family: var(--mono);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ============================================================
+LEAFLET MAP DARK THEME — Map ko dark banana
+============================================================ */
+.leaflet-container { background: #0a0f1a !important; }
+.leaflet-tile { filter: brightness(0.6) saturate(0.4) hue-rotate(180deg); } /* dark filter */
+.leaflet-popup-content-wrapper { background: var(--surface) !important; border: 1px solid var(--border) !important; color: var(--text) !important; border-radius: 10px !important; box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important; }
+.leaflet-popup-tip { background: var(--surface) !important; }
+.leaflet-popup-content { font-family: var(--font) !important; font-size: 13px !important; }
+.leaflet-control-zoom a { background: var(--surface) !important; color: var(--text) !important; border-color: var(--border) !important; }
+.leaflet-control-zoom a:hover { background: var(--border) !important; }
+.leaflet-attribution-flag { display: none !important; }
+
+/* ============================================================
+LOADING SCREEN — Page load hone tak dikhta hai
+============================================================ */
+.loading-screen {
+position: fixed; inset: 0; background: var(--bg); z-index: 8000;
+display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+transition: opacity 0.5s;
+}
+.loading-screen.hide { opacity: 0; pointer-events: none; } /* hide karo */
+.loader { width: 44px; height: 44px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-screen p { font-size: 13px; color: var(--muted); font-family: var(--mono); }
+
+/* ============================================================
+RESPONSIVE — Tablet (900px se chhota)
+============================================================ */
+@media (max-width: 900px) {
+.sidebar { width: 240px; }
+.search-wrap { width: 160px; }
+}
+
+/* ============================================================
+RESPONSIVE — Mobile (600px se chhota)
+Phone pe layout bilkul alag hoga
+============================================================ */
+@media (max-width: 600px) {
+.navbar { height: 52px; padding: 0 12px; }
+.logo-text { font-size: 15px; }
+.logo-icon { width: 27px; height: 27px; font-size: 14px; }
+.search-wrap { width: 120px; padding: 0 10px; }
+.search-wrap input { font-size: 12px; }
+.live-badge span { display: none; } /* sirf dot dikhao, text chhupao */
+
+/* Mobile pe sidebar neeche se slide karta hai */
+.layout { flex-direction: column; height: calc(100vh - 52px - 58px); }
+.sidebar { width: 100%; border-right: none; display: none; flex-shrink: 0; }
+
+/* Sidebar open state — neeche se upar aata hai */
+.sidebar.mobile-open {
+display: flex; flex-direction: column; height: 62vh; overflow-y: auto;
+position: fixed; bottom: 58px; left: 0; right: 0; z-index: 800;
+background: var(--panel); border-top: 2px solid var(--accent);
+border-radius: 20px 20px 0 0;
+animation: slide-up 0.3s ease;
+}
+@keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.map-wrap { flex: 1; height: 100%; }
+.map-overlay { top: 8px; padding: 7px 12px; gap: 12px; }
+.overlay-val { font-size: 12px; }
+.overlay-lbl { font-size: 8px; }
+.sos-btn { bottom: 68px; right: 12px; padding: 9px 16px; font-size: 12px; }
+.fb-status { bottom: 68px; left: 12px; font-size: 10px; padding: 4px 10px; }
+.watermark { bottom: 108px; }
+.my-loc-btn { bottom: 130px; right: 12px; }
+.dist-popup { top: 60px; }
+.bus-list { max-height: none; } /* mobile pe height limit nahi */
+.mobile-tabs { display: flex !important; } /* bottom tabs dikhao */
+}
+
+/* ============================================================
+MOBILE BOTTOM TABS — Phone ke liye 3 tab navigation
+============================================================ */
+.mobile-tabs {
+display: none; /* default chhupa ke rakho — sirf mobile pe dikhega */
+position: fixed; bottom: 0; left: 0; right: 0; height: 58px;
+background: var(--panel); border-top: 1px solid var(--border); z-index: 900;
+align-items: center; justify-content: space-around;
+padding-bottom: env(safe-area-inset-bottom); /* iPhone home bar ke liye */
+}
+.tab-btn {
+display: flex; flex-direction: column; align-items: center; gap: 2px;
+background: none; border: none; cursor: pointer; color: var(--muted);
+font-family: var(--font); font-size: 9px; padding: 6px 16px;
+border-radius: 10px; transition: all 0.2s; flex: 1;
+}
+.tab-btn .ti { font-size: 19px; }
+.tab-btn.active { color: var(--accent); background: rgba(0,212,255,0.08); }
+.tab-btn:active { transform: scale(0.9); }
+
+/* Jab koi bus nahi hogi tab dikhne wala message */
+.no-buses { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; color: var(--muted); font-size: 13px; text-align: center; gap: 8px; }
+.no-buses .icon { font-size: 32px; }
 </style>
 </head>
 <body>
 
-<!-- Loading -->
+<!-- ============================================================
+LOADING SCREEN — Firebase se data aane tak dikhta hai
+============================================================ -->
 <div class="loading-screen" id="loadingScreen">
 <div class="loader"></div>
 <p>Connecting to BusTrack...</p>
 </div>
 
+<!-- ============================================================
+NAVBAR — Top bar
+============================================================ -->
 <nav class="navbar">
 <div class="logo">
 <div class="logo-icon">🚌</div>
@@ -252,15 +444,24 @@ border-radius:10px;transition:all 0.2s;flex:1;
 </div>
 </nav>
 
+<!-- ============================================================
+MAIN LAYOUT — Sidebar + Map
+============================================================ -->
 <div class="layout">
+
+<!-- LEFT: Bus list + Details -->
 <aside class="sidebar" id="sidebar">
 <div class="sidebar-header">Active Buses (<span id="busCount">0</span>)</div>
+
+<!-- Bus cards yahan dynamically add hongi (JavaScript se) -->
 <div class="bus-list" id="busList">
 <div class="no-buses">
 <div class="icon">🚌</div>
 <div>Loading buses...</div>
 </div>
 </div>
+
+<!-- Selected bus ki details -->
 <div class="details-panel">
 <div class="details-title">Bus Details</div>
 <div class="stats-grid">
@@ -270,11 +471,17 @@ border-radius:10px;transition:all 0.2s;flex:1;
 <div class="stat-box"><div class="stat-icon">📍</div><div class="stat-value" id="d-acc">—</div><div class="stat-label">GPS acc</div></div>
 </div>
 <div class="stops-title">Route &amp; Stops</div>
-<div class="timeline" id="stopsList"><div style="color:var(--muted);font-size:12px;padding:8px 0">Select a bus to see stops</div></div>
+<!-- Stops yahan dynamically add honge -->
+<div class="timeline" id="stopsList">
+<div style="color:var(--muted);font-size:12px;padding:8px 0">Select a bus to see stops</div>
+</div>
 </div>
 </aside>
 
+<!-- RIGHT: Map area -->
 <div class="map-wrap">
+
+<!-- Floating info bar upar -->
 <div class="map-overlay">
 <div class="overlay-item"><div class="overlay-val" id="ov-bus">—</div><div class="overlay-lbl">Bus</div></div>
 <div class="overlay-sep"></div>
@@ -282,26 +489,62 @@ border-radius:10px;transition:all 0.2s;flex:1;
 <div class="overlay-sep"></div>
 <div class="overlay-item"><div class="overlay-val" id="ov-speed">—</div><div class="overlay-lbl">km/h</div></div>
 </div>
+
+<!-- Leaflet map yahan render hogi -->
 <div id="map"></div>
+
+<!-- Firebase connection status — bottom left -->
 <div class="fb-status" id="fbStatus">🔄 Connecting...</div>
+
+<!-- Rohit ka watermark -->
 <div class="watermark">made by rohit</div>
+
+<!-- Distance popup — bus pe click karne pe dikhega -->
+<div class="dist-popup" id="distPopup">
+<button class="dist-close" onclick="document.getElementById('distPopup').classList.remove('show')">✕</button>
+<div class="dist-val" id="distVal">—</div>
+<div class="dist-lbl" id="distLbl">Distance from you to bus</div>
+</div>
+
+<!-- My Location button — bottom right -->
+<button class="my-loc-btn" id="myLocBtn" onclick="goToMyLocation()" title="My Location">📍</button>
+
+<!-- SOS Button — emergency -->
 <button class="sos-btn" onclick="triggerSOS()">🆘 SOS</button>
 </div>
 </div>
 
+<!-- ============================================================
+MOBILE BOTTOM TABS — Sirf phone pe dikhte hain
+============================================================ -->
 <nav class="mobile-tabs">
-<button class="tab-btn active" id="tab-map" onclick="switchTab('map')"><span class="ti">🗺️</span>Map</button>
-<button class="tab-btn" id="tab-buses" onclick="switchTab('buses')"><span class="ti">🚌</span>Buses</button>
+<button class="tab-btn active" id="tab-map" onclick="switchTab('map')"> <span class="ti">🗺️</span>Map</button>
+<button class="tab-btn" id="tab-buses" onclick="switchTab('buses')"> <span class="ti">🚌</span>Buses</button>
 <button class="tab-btn" id="tab-search" onclick="switchTab('search')"><span class="ti">🔍</span>Search</button>
 </nav>
 
+<!-- Toast notification -->
 <div class="toast" id="toast"></div>
 
+<!-- ============================================================
+LEAFLET MAP LIBRARY — CDN se load ho rahi hai (free)
+============================================================ -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- ============================================================
+FIREBASE + MAIN JAVASCRIPT
+type="module" isliye hai kyunki Firebase ES modules use karta hai
+============================================================ -->
 <script type="module">
+
+// Firebase ke functions import karo
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+// ============================================================
+// FIREBASE CONFIG — Tera project ka config
+// Yeh values Firebase Console se milti hain
+// ============================================================
 const firebaseConfig = {
 apiKey: "AIzaSyBRhyAtV5I56gK_JnOJu3lgKKyG35exVzU",
 authDomain: "college-busses.firebaseapp.com",
@@ -312,30 +555,111 @@ messagingSenderId: "508998049229",
 appId: "1:508998049229:web:77b7eb5fca95ba43fe7884"
 };
 
+// Security — right click aur devtools disable karo
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key)) || (e.ctrlKey && e.key === 'U'))
+e.preventDefault();
+});
+
+// Firebase initialize karo
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let busesConfig = {};
-let liveData = {};
-let activeBus = null;
-let busMarkers = {};
-let map;
+// Global variables
+let busesConfig = {}; // Admin se buses ki info (name, route, stops)
+let liveData = {}; // Driver se real-time GPS data
+let activeBus = null; // Abhi selected bus kaun si hai
+let busMarkers = {}; // Map pe bus ke markers
+let map; // Leaflet map object
+let myLocationMarker = null; // Student ki location marker
+let myLat = null, myLng = null; // Student ki GPS coordinates
 
-// MAP INIT
-map = L.map('map', {zoomControl:true}).setView([28.6139, 77.2090], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap'}).addTo(map);
+// ============================================================
+// MAP INITIALIZE — Leaflet map banao
+// ============================================================
+map = L.map('map', { zoomControl: true }).setView([28.6139, 77.2090], 13);
+// OpenStreetMap tiles load karo (free map tiles)
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
-// LOAD BUSES CONFIG FROM FIREBASE
+// ============================================================
+// STUDENT KI LOCATION — Khud ki location map pe dikhao
+// navigator.geolocation = browser ka built-in GPS feature
+// ============================================================
+function startMyLocation() {
+if (!navigator.geolocation) return; // GPS support nahi hai
+
+// watchPosition = GPS continuously track karo (getCurrentPosition se different — wo sirf ek baar leta hai)
+navigator.geolocation.watchPosition(pos => {
+myLat = pos.coords.latitude;
+myLng = pos.coords.longitude;
+
+// Blue pulsing dot — student ki location
+const myIcon = L.divIcon({
+html: `<div style="width:14px;height:14px;background:#00d4ff;border-radius:50%;border:3px solid white;box-shadow:0 0 0 5px rgba(0,212,255,0.25);"></div>`,
+className: '', iconAnchor: [7, 7]
+});
+
+if (myLocationMarker) {
+myLocationMarker.setLatLng([myLat, myLng]); // Move existing marker
+} else {
+// Pehli baar — naya marker banao
+myLocationMarker = L.marker([myLat, myLng], { icon: myIcon, zIndexOffset: 1000 })
+.addTo(map)
+.bindPopup('<b style="color:#00d4ff">📍 You are here</b>');
+}
+}, null, { enableHighAccuracy: true, maximumAge: 5000 });
+}
+
+// My location button click
+window.goToMyLocation = function() {
+const btn = document.getElementById('myLocBtn');
+if (myLat && myLng) {
+map.flyTo([myLat, myLng], 16, { duration: 1 }); // Smooth zoom
+toast('📍 Your location!');
+} else {
+btn.classList.add('locating'); // Spinning animation
+navigator.geolocation.getCurrentPosition(pos => {
+myLat = pos.coords.latitude; myLng = pos.coords.longitude;
+map.flyTo([myLat, myLng], 16, { duration: 1 });
+btn.classList.remove('locating');
+toast('📍 Location found!');
+}, () => {
+btn.classList.remove('locating');
+toast('❌ Location permission denied');
+}, { enableHighAccuracy: true });
+}
+};
+
+// Haversine formula — 2 GPS points ke beech distance calculate karo (km mein)
+function calcDistance(lat1, lon1, lat2, lon2) {
+const R = 6371; // Earth ki radius km mein
+const dLat = (lat2 - lat1) * Math.PI / 180;
+const dLon = (lon2 - lon1) * Math.PI / 180;
+const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// Location tracking shuru karo
+startMyLocation();
+
+// ============================================================
+// FIREBASE SE BUSES CONFIG LOAD KARO
+// Admin ne jo buses add ki hain unka data
+// ============================================================
 get(ref(db, 'buses_config')).then(snap => {
 busesConfig = snap.val() || {};
 renderBusList();
-document.getElementById('loadingScreen').classList.add('hide');
+document.getElementById('loadingScreen').classList.add('hide'); // Loading screen hatao
 }).catch(() => {
 document.getElementById('loadingScreen').classList.add('hide');
-toast('⚠️ Could not load bus config. Check Firebase rules!');
+toast('⚠️ Could not load bus config');
 });
 
-// LISTEN LIVE GPS DATA
+// ============================================================
+// FIREBASE REALTIME LISTENER — Driver ki live GPS suno
+// onValue = jab bhi Firebase mein data change ho, yeh function call ho
+// ============================================================
 onValue(ref(db, 'buses'), snap => {
 const data = snap.val() || {};
 liveData = data;
@@ -349,24 +673,27 @@ fbStatus.textContent = '⚠️ Waiting for drivers to go live';
 fbStatus.className = 'fb-status';
 }
 
+// Har live bus ko map pe update karo
 Object.keys(data).forEach(busId => {
 updateBusMarker(busId, data[busId]);
 const dot = document.getElementById('dot-' + busId);
-if (dot) dot.classList.add('live');
 const badge = document.getElementById('badge-' + busId);
+if (dot) dot.classList.add('live');
 if (badge) { badge.textContent = '● Running'; badge.className = 'bus-status running'; }
 });
 
+// Offline buses ke markers hatao
 Object.keys(busesConfig).forEach(busId => {
 if (!data[busId]) {
 const dot = document.getElementById('dot-' + busId);
-if (dot) dot.classList.remove('live');
 const badge = document.getElementById('badge-' + busId);
+if (dot) dot.classList.remove('live');
 if (badge) { badge.textContent = '● Offline'; badge.className = 'bus-status offline'; }
 if (busMarkers[busId]) { map.removeLayer(busMarkers[busId]); delete busMarkers[busId]; }
 }
 });
 
+// Active bus ki details update karo
 if (activeBus && data[activeBus]) updateDetails(activeBus, data[activeBus]);
 document.getElementById('busCount').textContent = Object.keys(busesConfig).length;
 
@@ -375,7 +702,9 @@ document.getElementById('fbStatus').textContent = '❌ Firebase error — check 
 document.getElementById('fbStatus').className = 'fb-status error';
 });
 
-// RENDER BUS LIST
+// ============================================================
+// BUS LIST RENDER — Sidebar mein bus cards banao
+// ============================================================
 function renderBusList() {
 const list = document.getElementById('busList');
 const keys = Object.keys(busesConfig);
@@ -385,6 +714,8 @@ if (!keys.length) {
 list.innerHTML = '<div class="no-buses"><div class="icon">🚌</div><div>No buses configured yet.<br>Ask admin to add buses.</div></div>';
 return;
 }
+
+// Har bus ke liye ek card banao (template literal se HTML banaya)
 list.innerHTML = keys.map(id => {
 const b = busesConfig[id];
 return `<div class="bus-card" id="card-${id}" onclick="selectBus('${id}',this)">
@@ -397,15 +728,16 @@ return `<div class="bus-card" id="card-${id}" onclick="selectBus('${id}',this)">
 </div>`;
 }).join('');
 
-if (keys.length > 0) {
-const firstId = keys[0];
-selectBus(firstId, document.getElementById('card-' + firstId));
-}
+// Pehli bus automatically select karo
+if (keys.length > 0) selectBus(keys[0], document.getElementById('card-' + keys[0]));
 }
 
-// SELECT BUS
+// ============================================================
+// BUS SELECT — Jab user kisi bus pe click kare
+// ============================================================
 window.selectBus = function(id, cardEl) {
 activeBus = id;
+// Sab cards se active class hatao, sirf is pe lagao
 document.querySelectorAll('.bus-card').forEach(c => c.classList.remove('active'));
 cardEl.classList.add('active');
 
@@ -415,19 +747,20 @@ renderStops(b.stops || []);
 
 if (liveData[id]) {
 updateDetails(id, liveData[id]);
-map.flyTo([liveData[id].lat, liveData[id].lng], 15, {duration:1.2});
+map.flyTo([liveData[id].lat, liveData[id].lng], 15, { duration: 1.2 }); // Map us bus pe zoom karo
 } else {
+// Bus offline hai
 document.getElementById('d-speed').textContent = '—';
 document.getElementById('d-eta').textContent = '—';
 document.getElementById('d-stops').textContent = '—';
 document.getElementById('d-acc').textContent = '—';
 document.getElementById('ov-loc').textContent = 'Offline';
 document.getElementById('ov-speed').textContent = '—';
-map.setView([28.6139, 77.2090], 13);
 }
 toast('🚌 ' + id + ' — ' + (b.name || ''));
 };
 
+// Details panel update karo
 function updateDetails(busId, d) {
 document.getElementById('d-speed').textContent = d.speed || 0;
 document.getElementById('d-eta').textContent = '—';
@@ -438,24 +771,51 @@ document.getElementById('ov-loc').textContent = (d.lat ? d.lat.toFixed(3) : '—
 document.getElementById('ov-speed').textContent = (d.speed || 0) + ' km/h';
 }
 
-// UPDATE MAP MARKER — BUG FIX: backtick added in html template literal
+// ============================================================
+// MAP MARKER UPDATE — Bus ki position map pe update karo
+// ============================================================
 function updateBusMarker(busId, d) {
 const b = busesConfig[busId] || {};
 const color = b.color || '#00d4ff';
+
+// Custom HTML marker — colored pill shape
 const icon = L.divIcon({
-html: `<div style="background:${color};color:#080c14;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;box-shadow:0 0 20px ${color}99;white-space:nowrap;">🚌 ${busId}</div>`,
-className: '',
-iconAnchor: [35, 16]
+html: `<div style="background:${color};color:#080c14;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;box-shadow:0 0 20px ${color}99;white-space:nowrap;cursor:pointer;">🚌 ${busId}</div>`,
+className: '', iconAnchor: [35, 16]
 });
+
+// Bus marker click pe distance dikhao
+const onMarkerClick = () => {
+const popup = document.getElementById('distPopup');
+const distVal = document.getElementById('distVal');
+const distLbl = document.getElementById('distLbl');
+
+if (myLat && myLng) {
+const dist = calcDistance(myLat, myLng, d.lat, d.lng);
+// 1km se kam ho toh meters mein dikhao
+distVal.textContent = dist < 1 ? Math.round(dist * 1000) + ' m' : dist.toFixed(2) + ' km';
+distLbl.textContent = busId + ' is this far from you';
+} else {
+distVal.textContent = '📍 ?';
+distLbl.textContent = 'Enable location to see distance';
+}
+popup.classList.add('show');
+setTimeout(() => popup.classList.remove('show'), 4000); // 4 sec baad band
+};
+
 if (busMarkers[busId]) {
-busMarkers[busId].setLatLng([d.lat, d.lng]);
+busMarkers[busId].setLatLng([d.lat, d.lng]); // Existing marker move karo
 busMarkers[busId].getPopup()?.setContent(popupContent(busId, d, b));
 } else {
-busMarkers[busId] = L.marker([d.lat, d.lng], {icon}).addTo(map)
-.bindPopup(popupContent(busId, d, b));
+// Naya marker banao
+busMarkers[busId] = L.marker([d.lat, d.lng], { icon })
+.addTo(map)
+.bindPopup(popupContent(busId, d, b))
+.on('click', onMarkerClick); // Click listener
 }
 }
 
+// Map popup ka content
 function popupContent(id, d, b) {
 return `<b style="color:${b.color || '#00d4ff'}">${id}</b><br>
 ${b.name || ''}<br>Speed: ${d.speed || 0} km/h<br>
@@ -463,56 +823,68 @@ Driver: ${b.driver || '—'}<br>
 Updated: ${new Date(d.timestamp).toLocaleTimeString()}`;
 }
 
-// STOPS RENDER
+// ============================================================
+// STOPS TIMELINE RENDER
+// ============================================================
 function renderStops(stops) {
 const list = document.getElementById('stopsList');
-if (!stops.length) { list.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0">No stops configured</div>'; return; }
+if (!stops.length) {
+list.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0">No stops configured</div>';
+return;
+}
 list.innerHTML = stops.map((s, i) => {
 const state = i === 0 ? 'current' : 'upcoming';
 let tag = '';
 if (i === 0) tag = '<span class="stop-tag current-tag">HERE</span>';
 else if (i === 1) tag = '<span class="stop-tag next-tag">NEXT</span>';
-return `<div class="stop-item ${state}">
-<span class="stop-name ${state}">${s}</span>${tag}
-</div>`;
+return `<div class="stop-item ${state}"><span class="stop-name ${state}">${s}</span>${tag}</div>`;
 }).join('');
 }
 
-// SEARCH
+// ============================================================
+// SEARCH — Bus ID se dhundho
+// ============================================================
 window.searchBus = function() {
 const val = document.getElementById('searchInput').value.trim().toUpperCase();
 if (busesConfig[val]) {
 const card = document.getElementById('card-' + val);
-if (card) { selectBus(val, card); card.scrollIntoView({behavior:'smooth'}); }
+if (card) { selectBus(val, card); card.scrollIntoView({ behavior: 'smooth' }); }
 } else {
 toast('❌ "' + val + '" not found');
 }
 };
 document.getElementById('searchInput').addEventListener('keypress', e => { if (e.key === 'Enter') window.searchBus(); });
 
-// SOS
+// ============================================================
+// SOS BUTTON — Emergency alert Firebase pe save karo
+// ============================================================
 window.triggerSOS = function() {
-set(ref(db, 'sos/' + Date.now()), {bus: activeBus, timestamp: Date.now(), msg: 'SOS from student app'});
+set(ref(db, 'sos/' + Date.now()), { bus: activeBus, timestamp: Date.now(), msg: 'SOS from student app' });
 toast('🆘 SOS Alert sent to admin!');
 };
 
-// MOBILE TABS
+// ============================================================
+// MOBILE TABS — Phone pe bottom tabs
+// ============================================================
 window.switchTab = function(tab) {
 const sidebar = document.getElementById('sidebar');
 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 document.getElementById('tab-' + tab).classList.add('active');
+
 if (tab === 'map') {
-sidebar.classList.remove('mobile-open');
+sidebar.classList.remove('mobile-open'); // Sidebar band karo
 } else if (tab === 'buses') {
+// Toggle — agar open hai toh band karo, band hai toh kholo
 sidebar.classList.contains('mobile-open')
 ? (sidebar.classList.remove('mobile-open'), document.getElementById('tab-map').classList.add('active'), document.getElementById('tab-buses').classList.remove('active'))
 : sidebar.classList.add('mobile-open');
 } else if (tab === 'search') {
 sidebar.classList.remove('mobile-open');
-document.getElementById('searchInput').focus();
+document.getElementById('searchInput').focus(); // Keyboard open karo
 }
 };
 
+// Bus card click pe mobile mein sidebar band ho jaaye
 document.addEventListener('click', e => {
 if (e.target.closest('.bus-card') && window.innerWidth <= 600) {
 setTimeout(() => {
@@ -523,24 +895,27 @@ document.getElementById('tab-buses').classList.remove('active');
 }
 });
 
-// TOAST
+// ============================================================
+// TOAST NOTIFICATION — Temporary message dikhao
+// ============================================================
 function toast(msg) {
 const t = document.getElementById('toast');
 t.textContent = msg;
 t.classList.add('show');
-setTimeout(() => t.classList.remove('show'), 2500);
+setTimeout(() => t.classList.remove('show'), 2500); // 2.5 sec baad hatao
 }
 window.toast = toast;
+
 </script>
 
-
-
+<!-- PWA Service Worker — App ko install karne ke liye -->
 <script>
-if("serviceWorker" in navigator){
-window.addEventListener("load", ()=>{
-    navigator.serviceWorker.register("sw.js");
+if ("serviceWorker" in navigator) {
+window.addEventListener("load", () => {
+navigator.serviceWorker.register("sw.js");
 });
 }
 </script>
+
 </body>
 </html>
