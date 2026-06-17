@@ -860,7 +860,7 @@ document.getElementById('searchInput').addEventListener('keypress', e => { if (e
 // ============================================================
 window.triggerSOS = function() {
 set(ref(db, 'sos/' + Date.now()), { bus: activeBus, timestamp: Date.now(), msg: 'SOS from student app' });
-toast('🆘 SOS Alert sent to admin!');
+toast(' SOS Alert sent to admin!');
 };
 
 // ============================================================
